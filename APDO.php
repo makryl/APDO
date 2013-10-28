@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.2 | 20131027
+ * v 0.3 | 20131028
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -41,8 +41,8 @@ interface IAPDOCache
  *  - Lazy connection (established before first query sent to database).
  *  - Stores query log.
  *  - Caches statement results and rows if possible.
- *  - Simple interface to make queries and retrive results.
- *  - Simple using foreign keys to retrive referenced data.
+ *  - Simple interface to make queries and retrieve results.
+ *  - Simple using foreign keys to retrieve referenced data.
  */
 class APDO
 {
@@ -70,7 +70,10 @@ class APDO
     private $executedCount;
     private $cachedCount;
 
-    private $lastQuery;
+    /**
+     * @var APDOStatement
+     */
+    private $last;
 
 
 
@@ -160,11 +163,11 @@ class APDO
 
 
     /**
-     * @return string                       Last exequted query.
+     * @return \aeqdev\APDOStatement        Last exequted statement.
      */
-    function lastQuery()
+    function last()
     {
-        return $this->lastQuery;
+        return $this->last;
     }
 
 
@@ -215,12 +218,12 @@ class APDO
      * @param null|array    $args           Array of arguments for statement.
      * @return \aeqdev\APDOStatement        Created statement.
      */
-    function statement($statement = null, $args = [])
+    function statement($statement = null, $args = null)
     {
         return (new APDOStatement(
             $this, $statement, $args,
             $this->statementCount, $this->executedCount, $this->cachedCount,
-            $this->lastQuery
+            $this->last
         ))
             ->pkey($this->pkey)
             ->log($this->log)
@@ -293,6 +296,7 @@ class APDOStatement
 
     private $rowCount;
     private $lastQuery;
+    private $last;
 
     private $executedCount;
     private $cachedCount;
@@ -308,18 +312,18 @@ class APDOStatement
      * @param null|array    $args           Array of arguments for statement.
      */
     function __construct(
-        APDO $apdo, $statement = null, $args = [],
+        APDO $apdo, $statement = null, $args = null,
         &$statementCount = null, &$executedCount = null, &$cachedCount = null,
-        &$lastQuery = null
+        &$last = null
     ) {
         $this->apdo = $apdo;
         $this->statement = $statement;
-        $this->args = $args;
+        $this->args = $args ? : [];
 
         ++$statementCount;
         $this->executedCount =& $executedCount;
         $this->cachedCount =& $cachedCount;
-        $this->lastQuery =& $lastQuery;
+        $this->last =& $last;
     }
 
 
@@ -734,10 +738,10 @@ class APDOStatement
      * Executes SELECT query and returns it's result.
      *
      * Builds SQL using the statement.
-     * Sends query to database or retrives result from cache.
+     * Sends query to database or retrieves result from cache.
      * Call handlers on result array.
      *
-     * Result retrives from database using PDO's method fetchAll()
+     * Result retrieves from database using PDO's method fetchAll()
      *
      * @param int           $fetch_style    PDO fetch style.
      * @return array                        Result array.
@@ -751,11 +755,12 @@ class APDOStatement
                     $this->statement
                         ? : 'SELECT ' . $this->fields
                             . "\nFROM " . $this->table
-                            . (!empty($this->where)     ? "\nWHERE "    . $this->where : '')
-                            . (!empty($this->groupby)   ? "\nGROUP BY " . $this->groupby : '')
-                            . (!empty($this->having)    ? "\nHAVING "   . $this->having : '')
-                            . (!empty($this->orderby)   ? "\nORDER BY " . $this->orderby : '')
-                            . (!empty($this->limit)     ? "\nLIMIT "    . $this->offset . ', ' . $this->limit : ''),
+                            . (!empty($this->where)     ? "\nWHERE "    . $this->where      : '')
+                            . (!empty($this->groupby)   ? "\nGROUP BY " . $this->groupby    : '')
+                            . (!empty($this->having)    ? "\nHAVING "   . $this->having     : '')
+                            . (!empty($this->orderby)   ? "\nORDER BY " . $this->orderby    : '')
+                            . (!empty($this->limit)     ? "\nLIMIT "    . $this->limit      : '')
+                            . (!empty($this->offset)    ? "\nOFFSET "   . $this->offset     : ''),
                     $this->args,
                     empty($this->statement),
                     true,
@@ -768,7 +773,7 @@ class APDOStatement
 
     /**
      * Same as method all() with fetch style PDO::FETCH_KEY_PAIR.
-     * Intended to retrive key-value result array.
+     * Intended to retrieve key-value result array.
      *
      * @return array                        Result array.
      */
@@ -826,7 +831,7 @@ class APDOStatement
 
     /**
      * Same as method page() with fetch style PDO::FETCH_KEY_PAIR.
-     * Intended to retrive key-value result array.
+     * Intended to retrieve key-value result array.
      *
      * @param int           $page           Page number.
      * @return array                        Result array.
@@ -1012,6 +1017,7 @@ class APDOStatement
         }
 
         $this->lastQuery = $statement;
+        $this->last = $this;
 
         return $result;
     }
@@ -1137,7 +1143,7 @@ class APDOStatement
      *      Items in result will have value with key $referrer,
      *          that contains array of references to corresponding items of data.
      *
-     * Some or all items of result can be retrived from cache.
+     * Some or all items of result can be retrieved from cache.
      *
      * Example:
      *
@@ -1305,7 +1311,7 @@ class APDOStatement
      *              'tree' => &['id' => 1, 'name' => 'apple tree', 'fruits' => &recursion],
      *          ],
      *      ['id' => 3, 'name' => 'orange',
-     *              'tree' => &['id' => 1, 'name' => 'orange tree', 'fruits' => &recursion],
+     *              'tree' => &['id' => 2, 'name' => 'orange tree', 'fruits' => &recursion],
      *          ],
      *  ];
      *
