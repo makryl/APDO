@@ -17,107 +17,135 @@ APDO constructor is same as PDO.
 
 Basic usage of PDO looks like this:
 
-    $sth = $pdo->prepare('SELECT * FROM fruit LIMIT 10');
-    $sth->execute();
-    $fruits = $sth->fetchAll();
+```php
+$sth = $pdo->prepare('SELECT * FROM fruit LIMIT 10');
+$sth->execute();
+$fruits = $sth->fetchAll();
+```
 
 With APDO it is a bit simpler:
 
-    $fruits = $apdo
-        ->statement('SELECT * FROM fruit LIMIT 10')
-        ->all();
+```php
+$fruits = $apdo
+    ->statement('SELECT * FROM fruit LIMIT 10')
+    ->all();
+```
 
 But... Why not go on?
 
-    $fruits = $apdo
-        ->from('fruit')
-        ->limit(10)
-        ->all();
+```php
+$fruits = $apdo
+    ->from('fruit')
+    ->limit(10)
+    ->all();
+```
 
 Thats better.
 
 How much rows it was last time, but without limit?
 
-    $last_count = $apdo
-        ->last()
-        ->count();
+```php
+$last_count = $apdo
+    ->last()
+    ->count();
+```
 
 Do you know which fruit you need?
 
-    $i_want_this_one = $apdo
-        ->from('fruit')
-        ->key(123)
-        ->one();
+```php
+$i_want_this_one = $apdo
+    ->from('fruit')
+    ->key(123)
+    ->one();
+```
 
 Do you need only fruit color?
 
-    list($color) = $apdo
-        ->from('fruit')
-        ->key(123)
-        ->oneL();
+```php
+list($color) = $apdo
+    ->from('fruit')
+    ->key(123)
+    ->oneL();
+```
 
 Do you need ID-indexed array of red fruit names?
 
-    $red_fruits_id_name = $apdo
-        ->from('fruit')
-        ->fields('id, name') # or ->fields(['id', 'name'])
-        ->key('red', 'color')
-        ->allK();
+```php
+$red_fruits_id_name = $apdo
+    ->from('fruit')
+    ->fields('id, name') # or ->fields(['id', 'name'])
+    ->key('red', 'color')
+    ->allK();
+```
 
 I don't like cherry, remove it.
 
-    $apdo
-        ->from('fruit')
-        ->key('cherry', 'name')
-        ->delete();
+```php
+$apdo
+    ->from('fruit')
+    ->key('cherry', 'name')
+    ->delete();
+```
 
 And all my apples should be green.
 
-    $apdo
-        ->in('fruit')
-        ->key('apple', 'name')
-        ->update(['color' => 'green']);
+```php
+$apdo
+    ->in('fruit')
+    ->key('apple', 'name')
+    ->update(['color' => 'green']);
+```
 
 I have two trees. What fruits grows there?
 
-    $trees = [
-        ['id' => 1, 'name' => 'apple tree'],
-        ['id' => 2, 'name' => 'orange tree'],
-    ];
+```php
+$trees = [
+    ['id' => 1, 'name' => 'apple tree'],
+    ['id' => 2, 'name' => 'orange tree'],
+];
 
-    $fruits = $apdo
-        ->from('fruit')
-        ->references($tree, 'fruits', 'tree', 'tree_id')
-        ->all();
+$fruits = $apdo
+    ->from('fruit')
+    ->references($tree, 'fruits', 'tree', 'tree_id')
+    ->all();
 
-    #   $fruits == [
-    #       ['id' => 1, 'name' => 'apple1', 'tree_id' => 1,
-    #               'tree' => &['id' => 1, 'name' => 'apple tree', 'fruits' => &recursion],
-    #           ],
-    #       ['id' => 2, 'name' => 'apple2', 'tree_id' => 1,
-    #               'tree' => &['id' => 1, 'name' => 'apple tree', 'fruits' => &recursion],
-    #           ],
-    #       ['id' => 3, 'name' => 'orange', 'tree_id' => 2,
-    #               'tree' => &['id' => 2, 'name' => 'orange tree', 'fruits' => &recursion],
-    #           ],
-    #   ];
+#   $fruits == [
+#       ['id' => 1, 'name' => 'apple1', 'tree_id' => 1,
+#               'tree' => &['id' => 1, 'name' => 'apple tree', 'fruits' => &recursion],
+#           ],
+#       ['id' => 2, 'name' => 'apple2', 'tree_id' => 1,
+#               'tree' => &['id' => 1, 'name' => 'apple tree', 'fruits' => &recursion],
+#           ],
+#       ['id' => 3, 'name' => 'orange', 'tree_id' => 2,
+#               'tree' => &['id' => 2, 'name' => 'orange tree', 'fruits' => &recursion],
+#           ],
+#   ];
+```
 
 On which trees my fruits grows?
 
-    $trees = $apdo
-        ->from('tree')
-        ->referrers($fruits, 'fruits', 'tree')
-        ->all();
-    
-    #   $trees == [
-    #       ['id' => 1, 'name' => 'apple tree', 'fruits' => [
-    #               &['id' => 1, 'name' => 'apple1', 'tree_id' => 1, 'tree' => &reqursion],
-    #               &['id' => 2, 'name' => 'apple2', 'tree_id' => 1, 'tree' => &reqursion],
-    #           ]]
-    #       ['id' => 2, 'name' => 'orange tree', 'fruits' => [
-    #               &['id' => 3, 'name' => 'orange', 'tree_id' => 2, 'tree' => &reqursion],
-    #           ]],
-    #   ];
+```php
+$fruits = [
+    ['id' => 1, 'name' => 'apple1', 'tree' => 1],
+    ['id' => 2, 'name' => 'apple2', 'tree' => 1],
+    ['id' => 3, 'name' => 'orange', 'tree' => 2],
+];
+
+$trees = $apdo
+    ->from('tree')
+    ->referrers($fruits, 'fruits', 'tree')
+    ->all();
+
+#   $trees == [
+#       ['id' => 1, 'name' => 'apple tree', 'fruits' => [
+#               &['id' => 1, 'name' => 'apple1', 'tree_id' => 1, 'tree' => &reqursion],
+#               &['id' => 2, 'name' => 'apple2', 'tree_id' => 1, 'tree' => &reqursion],
+#           ]]
+#       ['id' => 2, 'name' => 'orange tree', 'fruits' => [
+#               &['id' => 3, 'name' => 'orange', 'tree_id' => 2, 'tree' => &reqursion],
+#           ]],
+#   ];
+```
 
 That wasn't full methods list. Just press your favorite ctrl+space and read phpdocs - that's easy.
 

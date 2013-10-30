@@ -688,7 +688,7 @@ class APDOStatement
 
 
     /**
-     * Sets fields for the statement.
+     * Sets fields of the statement.
      * First argument can be string with fields list, or an array of filed names.
      *
      * @param string|array  $fields         Fields.
