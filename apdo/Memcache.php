@@ -20,7 +20,7 @@ namespace aeqdev\apdo;
  * Prevents sending identical queries to database.
  * Allows reusing retrieved rows for references (reduces queries).
  */
-class Memcache extends \Memcache implements \aeqdev\IAPDOCache
+class Memcache extends \Memcache implements ICache
 {
 
     protected $prefix;

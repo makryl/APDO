@@ -3,6 +3,8 @@
 namespace aeqdev;
 
 require '../APDO.php';
+require '../apdo/ICache.php';
+require '../apdo/ArrayCache.php';
 
 
 
@@ -39,7 +41,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree) VALUES (2, 'apple2', 1)")->execute();
         $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree) VALUES (3, 'orange', 2)")->execute();
 
-        $this->cache = new APDOCacheArray();
+        $this->cache = new apdo\ArrayCache();
     }
 
 

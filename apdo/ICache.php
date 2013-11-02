@@ -15,7 +15,7 @@ namespace aeqdev\apdo;
 
 
 
-interface IAPDOCache
+interface ICache
 {
     function get($name);
     function set($name, $value);

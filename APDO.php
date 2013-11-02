@@ -14,8 +14,8 @@
 namespace aeqdev;
 
 use \PDO;
-use apdo\IAPDOLog;
-use apdo\IAPDOCache;
+use apdo\ILog;
+use apdo\ICache;
 
 
 
@@ -43,12 +43,12 @@ class APDO
     private $pkey = 'id';
 
     /**
-     * @var IAPDOLog
+     * @var ILog
      */
     private $log;
 
     /**
-     * @var IAPDOCache
+     * @var ICache
      */
     private $cache;
 
@@ -172,9 +172,9 @@ class APDO
 
     /**
      * Sets or removes default logger of queries, sent to database, for new statements.
-     * Logger must implements IAPDOLog interface with only one debug($msg) method.
+     * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|IAPDOLog         $log    Logger to set as default.
+     * @param null|ILog         $log    Logger to set as default.
      */
     function setLog($log = null)
     {
@@ -185,10 +185,10 @@ class APDO
 
     /**
      * Sets or removes default cacher for new statements.
-     * Cacher must implements IAPDOCache interface with three simple methods:
+     * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|IAPDOCache       $cache Cacher to set as default.
+     * @param null|ICache       $cache Cacher to set as default.
      */
     function setCache($cache = null)
     {
@@ -257,12 +257,12 @@ class APDOStatement
     private $apdo;
 
     /**
-     * @var IAPDOLog
+     * @var ILog
      */
     private $log;
 
     /**
-     * @var IAPDOCache
+     * @var ICache
      */
     private $cache;
 
@@ -336,9 +336,9 @@ class APDOStatement
 
     /**
      * Sets or removes logger of queries, sent to database, for the statement.
-     * Logger must implements IAPDOLog interface with only one debug($msg) method.
+     * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|IAPDOLog         $log    Logger.
+     * @param null|ILog         $log    Logger.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function log($log = null)
@@ -351,10 +351,10 @@ class APDOStatement
 
     /**
      * Sets or removes cacher for the statement.
-     * Cacher must implements IAPDOCache interface with three simple methods:
+     * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|IAPDOCache       $cache  Cacher.
+     * @param null|ICache       $cache  Cacher.
      * @return \aeqdev\APDOStatement        Current statement.
      */
 

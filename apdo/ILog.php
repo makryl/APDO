@@ -15,7 +15,7 @@ namespace aeqdev\apdo;
 
 
 
-interface IAPDOLog
+interface ILog
 {
     function debug($msg);
 }

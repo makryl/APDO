@@ -21,7 +21,7 @@ namespace aeqdev\apdo;
  * Allows reusing retrieved rows for references (reduces queries).
  * Works only within one script run.
  */
-class ArrayCache implements \aeqdev\IAPDOCache
+class ArrayCache implements ICache
 {
 
     protected $cache = [];
