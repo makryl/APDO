@@ -2,6 +2,8 @@
 
 APDO class represents connection to database.
 
+
+
 ## Features
 
 - Uses [PDO](http://php.net/manual/book.pdo.php) for database access.
@@ -11,6 +13,8 @@ APDO class represents connection to database.
 - Simple interface to make queries and retrieve results.
 - Simple using foreign keys to retrieve referenced data.
 
+
+
 ## FAQ
 
 *Why PDO?*
@@ -18,6 +22,7 @@ PDO already supports many databases. APDO just make it easier to use.
 
 *Why not ActiveRecord?*
 Arrays, arrays and again arrays, and function name conventions... boring! No autocomplete. Typo mistakes. I don't want to remember all that keys and conventions.
+
 
 
 ## Usage
@@ -159,6 +164,8 @@ $trees = $apdo
 That wasn't full methods list. Just press your favorite ctrl+space and read phpdocs - that's easy.
 
 I WANT your comments, feature requests, bug reports, suggestions, thoughts...
+
+
 
 ## License
 
