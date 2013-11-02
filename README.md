@@ -11,6 +11,15 @@ APDO class represents connection to database.
 - Simple interface to make queries and retrieve results.
 - Simple using foreign keys to retrieve referenced data.
 
+## FAQ
+
+*Why PDO?*
+PDO already supports many databases. APDO just make it easier to use.
+
+*Why not ActiveRecord?*
+Arrays, arrays and again arrays, and function name conventions... boring! No autocomplete. Typo mistakes. I don't want to remember all that keys and conventions.
+
+
 ## Usage
 
 APDO constructor is same as PDO.
