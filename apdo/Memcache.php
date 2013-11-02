@@ -54,6 +54,12 @@ class Memcache extends \Memcache implements \aeqdev\IAPDOCache
 
 
 
+    /**
+     * Sets prefix for key names.
+     * Recomended prefix: "domain.name/apdo".
+     *
+     * @param string $prefix
+     */
     function setPrefix($prefix = null)
     {
         $this->prefixInit = $prefix;
