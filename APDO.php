@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.3 | 20131028
+ * v 0.4 | 20131102
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -14,22 +14,8 @@
 namespace aeqdev;
 
 use \PDO;
-
-
-
-interface IAPDOLog
-{
-    function debug($msg);
-}
-
-
-
-interface IAPDOCache
-{
-    function get($name);
-    function set($name, $value);
-    function clear();
-}
+use apdo\IAPDOLog;
+use apdo\IAPDOCache;
 
 
 
@@ -188,7 +174,7 @@ class APDO
      * Sets or removes default logger of queries, sent to database, for new statements.
      * Logger must implements IAPDOLog interface with only one debug($msg) method.
      *
-     * @param null|\aeqdev\IAPDOLog $log    Logger to set as default.
+     * @param null|IAPDOLog         $log    Logger to set as default.
      */
     function setLog($log = null)
     {
@@ -202,7 +188,7 @@ class APDO
      * Cacher must implements IAPDOCache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|\aeqdev\IAPDOCache $cache Cacher to set as default.
+     * @param null|IAPDOCache       $cache Cacher to set as default.
      */
     function setCache($cache = null)
     {
@@ -214,8 +200,8 @@ class APDO
     /**
      * Creates new statement.
      *
-     * @param null|string   $statement      SQL statement.
-     * @param null|array    $args           Array of arguments for statement.
+     * @param string        $statement      SQL statement.
+     * @param string|array  $args           Argument or array of arguments for the statement.
      * @return \aeqdev\APDOStatement        Created statement.
      */
     function statement($statement = null, $args = null)
@@ -308,8 +294,8 @@ class APDOStatement
      * Sets SQL statement and it's arguments.
      *
      * @param \aeqdev\APDO  $apdo           APDO object to associate with.
-     * @param null|string   $statement      SQL statement.
-     * @param null|array    $args           Array of arguments for statement.
+     * @param string        $statement      SQL statement.
+     * @param string|array  $args           Argument or array of arguments for the statement.
      */
     function __construct(
         APDO $apdo, $statement = null, $args = null,
@@ -318,7 +304,7 @@ class APDOStatement
     ) {
         $this->apdo = $apdo;
         $this->statement = $statement;
-        $this->args = $args ? : [];
+        $this->args = isset($args) ? $args : [];
 
         ++$statementCount;
         $this->executedCount =& $executedCount;
@@ -332,7 +318,7 @@ class APDOStatement
      * Adds statement and it's arguments to the log.
      *
      * @param string        $statement      SQL statement
-     * @param null|array    $args           Array of arguments for statement.
+     * @param string|array  $args           Argument or array of arguments for the statement.
      */
     private function logAdd($statement, $args = null)
     {
@@ -352,7 +338,7 @@ class APDOStatement
      * Sets or removes logger of queries, sent to database, for the statement.
      * Logger must implements IAPDOLog interface with only one debug($msg) method.
      *
-     * @param null|\aeqdev\IAPDOLog $log    Logger.
+     * @param null|IAPDOLog         $log    Logger.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function log($log = null)
@@ -368,7 +354,7 @@ class APDOStatement
      * Cacher must implements IAPDOCache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|\aeqdev\IAPDOCache $cache Cacher.
+     * @param null|IAPDOCache       $cache  Cacher.
      * @return \aeqdev\APDOStatement        Current statement.
      */
 
@@ -431,7 +417,7 @@ class APDOStatement
     /**
      * Sets prymary key name for the statement.
      *
-     * @param string        $name           Primary key name.
+     * @param string        $name           Primary key name, or array of names for complex primary key.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function pkey($name)
@@ -447,7 +433,7 @@ class APDOStatement
      *
      * @param string        $table          Table name to join with.
      * @param string        $on             Join condition.
-     * @param null|array    $args           Arguments for join conditions.
+     * @param string|array  $args           Argument or array of arguments for join conditions.
      * @param string        $joinType       Join type definition.
      * @return \aeqdev\APDOStatement        Current statement.
      */
@@ -470,7 +456,7 @@ class APDOStatement
      *
      * @param string        $table          Table name to join with.
      * @param string        $on             Join conditions.
-     * @param null|array    $args           Arguments for join conditions.
+     * @param string|array  $args           Argument or array of arguments for join conditions.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function leftJoin($table, $on = null, $args = null)
@@ -487,7 +473,7 @@ class APDOStatement
      * Set last argument append type to true, if you want to append conditions with OR operator.
      *
      * @param string        $where          Conditions.
-     * @param null|array    $args           Arguments of conditions.
+     * @param string|array  $args           Argument or array of arguments for conditions.
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
@@ -519,7 +505,7 @@ class APDOStatement
      * Conditions appends to previously defined conditions with OR operator.
      *
      * @param string        $where          Conditions.
-     * @param null|array    $args           Arguments of conditions.
+     * @param string|array  $args           Argument or array of arguments for conditions.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function orWhere($where, $args = null)
@@ -539,7 +525,7 @@ class APDOStatement
      * Set last argument append type to true, if you want to append conditions with OR operator.
      *
      * @param string|array  $args           Value or array of values.
-     * @param string        $name           Field name. By default primary key name is used.
+     * @param string|array  $name           Field name or array of field names. By default primary key name is used.
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
@@ -582,7 +568,7 @@ class APDOStatement
      * Conditions appends to previously defined conditions with OR operator.
      *
      * @param string|array  $args           Value or array of values.
-     * @param string        $name           Field name. By default primary key name is used.
+     * @param string|array  $name           Field name or array of field names. By default primary key name is used.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function orKey($args, $name = null)
@@ -610,7 +596,7 @@ class APDOStatement
      * Sets HAVING section of the statement.
      *
      * @param string        $having         Having definition.
-     * @param null|array    $args           Arguments for having conditions.
+     * @param string|array  $args           Argument or array of arguments for having conditions.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function having($having, $args = null)
@@ -752,21 +738,27 @@ class APDOStatement
             $this->nothing
                 ? []
                 : $this->query(
-                    $this->statement
-                        ? : 'SELECT ' . $this->fields
-                            . "\nFROM " . $this->table
-                            . (!empty($this->where)     ? "\nWHERE "    . $this->where      : '')
-                            . (!empty($this->groupby)   ? "\nGROUP BY " . $this->groupby    : '')
-                            . (!empty($this->having)    ? "\nHAVING "   . $this->having     : '')
-                            . (!empty($this->orderby)   ? "\nORDER BY " . $this->orderby    : '')
-                            . (!empty($this->limit)     ? "\nLIMIT "    . $this->limit      : '')
-                            . (!empty($this->offset)    ? "\nOFFSET "   . $this->offset     : ''),
+                    $this->statement ? : $this->buildSelect(),
                     $this->args,
                     empty($this->statement),
                     true,
                     $fetch_style
                 )
         );
+    }
+
+
+
+    function buildSelect()
+    {
+        return 'SELECT ' . $this->fields
+            . "\nFROM " . $this->table
+            . (!empty($this->where)     ? "\nWHERE "    . $this->where      : '')
+            . (!empty($this->groupby)   ? "\nGROUP BY " . $this->groupby    : '')
+            . (!empty($this->having)    ? "\nHAVING "   . $this->having     : '')
+            . (!empty($this->orderby)   ? "\nORDER BY " . $this->orderby    : '')
+            . (!empty($this->limit)     ? "\nLIMIT "    . $this->limit      : '')
+            . (!empty($this->offset)    ? "\nOFFSET "   . $this->offset     : '');
     }
 
 
@@ -1026,14 +1018,14 @@ class APDOStatement
 
     private function cacheKeyStatement($statement, $args, $fetch_style)
     {
-        return 'st.' . md5($statement . '-args-' . implode('-', $args) . '-fs-' . $fetch_style);
+        return 'st/' . md5($statement . '-args-' . implode('-', $args) . '-fs-' . $fetch_style);
     }
 
 
 
     private function cacheKeyRow($id, $fetch_style)
     {
-        return 'id.' . md5($this->table . '-id-' . $id . '-fields-' . $this->fields . '-fs-' . $fetch_style);
+        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->fields . '-fs-' . $fetch_style);
     }
 
 
@@ -1181,12 +1173,12 @@ class APDOStatement
      *          ],
      *  ];
      *
-     * @param null|array    $data           Data.
+     * @param array         $data           Data.
      * @param string        $referrer       Name of references in result array
      * @param string        $reference      Name of references in data array.
-     * @param null|string   $key            Key name, that used to extract values for condition.
+     * @param string        $key            Key name, that used to extract values for condition.
      *                                      By default is equal to $reference.
-     * @param null|string   $pkey           Sets primary key to the statement. Will be used in condition.
+     * @param string        $pkey           Sets primary key to the statement. Will be used in condition.
      * @return array                        Result.
      */
     function referrers(&$data, $referrer, $reference, $key = null, $pkey = null)
@@ -1315,12 +1307,12 @@ class APDOStatement
      *          ],
      *  ];
      *
-     * @param null|array    $data           Data.
+     * @param array         $data           Data.
      * @param string        $referrer       Name of references in data array
      * @param string        $reference      Name of references in result array.
-     * @param null|string   $key            Key name, that used in condition.
+     * @param string        $key            Key name, that used in condition.
      *                                      By default is equal to $reference.
-     * @param null|string   $pkey           Primary key, that used to extract values for condition.
+     * @param string        $pkey           Primary key, that used to extract values for condition.
      * @return array                        Result.
      */
     function references(&$data, $referrer, $reference, $key = null, $pkey = null)
@@ -1376,35 +1368,6 @@ class APDOStatement
 
                 return $r;
             });
-    }
-
-}
-
-
-
-class APDOCacheArray implements IAPDOCache
-{
-
-    protected $cache = [];
-
-
-    public function clear()
-    {
-        $this->cache = [];
-    }
-
-
-
-    public function get($name)
-    {
-        return @$this->cache[$name];
-    }
-
-
-
-    public function set($name, $value)
-    {
-        $this->cache[$name] = $value;
     }
 
 }
