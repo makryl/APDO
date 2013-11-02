@@ -19,6 +19,7 @@ namespace aeqdev\apdo;
  * Memcache for APDO.
  * Prevents sending identical queries to database.
  * Allows reusing retrieved rows for references (reduces queries).
+ * For clearing, increments version number, that used as prefix in key names.
  */
 class Memcache extends \Memcache implements ICache
 {
