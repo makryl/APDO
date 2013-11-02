@@ -174,7 +174,7 @@ class APDO
      * Sets or removes default logger of queries, sent to database, for new statements.
      * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|ILog         $log    Logger to set as default.
+     * @param null|ILog             $log    Logger to set as default.
      */
     function setLog($log = null)
     {
@@ -188,7 +188,7 @@ class APDO
      * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|ICache       $cache Cacher to set as default.
+     * @param null|ICache           $cache Cacher to set as default.
      */
     function setCache($cache = null)
     {
@@ -338,7 +338,7 @@ class APDOStatement
      * Sets or removes logger of queries, sent to database, for the statement.
      * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|ILog         $log    Logger.
+     * @param null|ILog             $log    Logger.
      * @return \aeqdev\APDOStatement        Current statement.
      */
     function log($log = null)
@@ -354,7 +354,7 @@ class APDOStatement
      * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|ICache       $cache  Cacher.
+     * @param null|ICache           $cache  Cacher.
      * @return \aeqdev\APDOStatement        Current statement.
      */
 
