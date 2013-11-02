@@ -415,7 +415,7 @@ class APDOStatement
 
 
     /**
-     * Sets prymary key name for the statement.
+     * Sets primary key name for the statement.
      *
      * @param string        $name           Primary key name, or array of names for complex primary key.
      * @return \aeqdev\APDOStatement        Current statement.
