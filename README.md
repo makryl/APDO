@@ -78,6 +78,7 @@ Do you need only fruit color?
 ```php
 list($color) = $apdo
     ->from('fruit')
+    ->fields('color')
     ->key(123)
     ->oneL();
 ```
