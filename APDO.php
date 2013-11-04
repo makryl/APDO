@@ -96,10 +96,6 @@ class APDO
     {
         if (!isset($this->pdo))
         {
-            $this->options = (array)$this->options + [
-                PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_EMULATE_PREPARES  => false,
-            ];
             $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
             $this->executedCount = 0;
         }
