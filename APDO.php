@@ -439,7 +439,7 @@ class APDOStatement
         if (!empty($on))
         {
             $this->table .= ' ON (' . $on . ')';
-            $this->args = array_merge($this->args, array_values((array)$args));
+            $this->args = array_merge($this->args, (array)$args);
         }
         return $this;
     }
@@ -489,7 +489,7 @@ class APDOStatement
                 . '(' . $where . ')';
         }
         $this->where;
-        $this->args = array_merge($this->args, array_values((array)$args));
+        $this->args = array_merge($this->args, (array)$args);
         return $this;
     }
 
@@ -598,7 +598,7 @@ class APDOStatement
     function having($having, $args = null)
     {
         $this->having = $having;
-        $this->args = array_merge($this->args, array_values((array)$args));
+        $this->args = array_merge($this->args, (array)$args);
         return $this;
     }
 
