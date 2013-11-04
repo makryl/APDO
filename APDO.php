@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.4 | 20131102
+ * v 0.5 | 20131104
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
