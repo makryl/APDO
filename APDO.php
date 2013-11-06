@@ -488,7 +488,6 @@ class APDOStatement
                 . ($or ? ' OR ' : ' AND ')
                 . '(' . $where . ')';
         }
-        $this->where;
         $this->args = array_merge($this->args, (array)$args);
         return $this;
     }
@@ -982,7 +981,7 @@ class APDOStatement
         {
             $this->logAdd($statement, $args);
             $sth = $this->apdo->pdo()->prepare($statement);
-            $result = $sth->execute((array)$args);
+            $result = $sth->execute($args);
             ++$this->executedCount;
             $this->rowCount = $sth->rowCount();
 
