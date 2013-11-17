@@ -41,7 +41,7 @@ class APDO
     /**
      * @var APDOParameters
      */
-    protected $params;
+    protected $parameters;
 
     /**
      * Stores connection parameters.
@@ -63,8 +63,8 @@ class APDO
         $this->password = $password;
         $this->options = $options;
 
-        $this->params = new APDOParameters();
-        $this->params->apdo = $this;
+        $this->parameters = new APDOParameters();
+        $this->parameters->apdo = $this;
     }
 
     /**
@@ -95,7 +95,7 @@ class APDO
      */
     public function statementCount()
     {
-        return $this->params->statementCount;
+        return $this->parameters->statementCount;
     }
 
     /**
@@ -103,7 +103,7 @@ class APDO
      */
     public function executedCount()
     {
-        return $this->params->executedCount;
+        return $this->parameters->executedCount;
     }
 
     /**
@@ -111,7 +111,7 @@ class APDO
      */
     public function cachedCount()
     {
-        return $this->params->cachedCount;
+        return $this->parameters->cachedCount;
     }
 
     /**
@@ -119,7 +119,7 @@ class APDO
      */
     public function last()
     {
-        return $this->params->last;
+        return $this->parameters->last;
     }
 
     /**
@@ -129,7 +129,7 @@ class APDO
      */
     public function setPkey($pkey)
     {
-        $this->params->pkey = $pkey;
+        $this->parameters->pkey = $pkey;
     }
 
     /**
@@ -142,9 +142,9 @@ class APDO
      */
     public function setFetchMode($fetchMode, $fetchArg = null, $fetchCtorArgs = null)
     {
-        $this->params->fetchMode = $fetchMode;
-        $this->params->fetchArg = $fetchArg;
-        $this->params->fetchCtorArgs = $fetchCtorArgs;
+        $this->parameters->fetchMode = $fetchMode;
+        $this->parameters->fetchArg = $fetchArg;
+        $this->parameters->fetchCtorArgs = $fetchCtorArgs;
     }
 
     /**
@@ -155,7 +155,7 @@ class APDO
      */
     public function setLog($log = null)
     {
-        $this->params->log = $log;
+        $this->parameters->log = $log;
     }
 
     /**
@@ -167,7 +167,7 @@ class APDO
      */
     public function setCache($cache = null)
     {
-        $this->params->cache = $cache;
+        $this->parameters->cache = $cache;
     }
 
     /**
@@ -179,7 +179,7 @@ class APDO
      */
     public function statement($statement = null, $args = null)
     {
-        return new APDOStatement($this->params, $statement, $args);
+        return new APDOStatement($this->parameters, $statement, $args);
     }
 
     /**
@@ -252,7 +252,7 @@ class APDOStatement
     /**
      * @var APDOParameters
      */
-    protected $params;
+    protected $parameters;
 
     /**
      * @var ILog
@@ -289,23 +289,23 @@ class APDOStatement
      * Stores creator APDO parameters.
      * Sets SQL statement and it's arguments.
      *
-     * @param \aeqdev\APDOParameters $params APDOParameters object.
+     * @param \aeqdev\APDOParameters $parameters APDOParameters object.
      * @param string        $statement      SQL statement.
      * @param string|array  $args           Argument or array of arguments for the statement.
      */
-    public function __construct(APDOParameters $params, $statement = null, $args = null)
+    public function __construct(APDOParameters $parameters, $statement = null, $args = null)
     {
-        $this->params = $params;
+        $this->parameters = $parameters;
         $this->statement = $statement;
         $this->args = isset($args) ? $args : [];
 
-        ++$params->statementCount;
+        ++$parameters->statementCount;
 
         $this
-            ->pkey($params->pkey)
-            ->fetchMode($params->fetchMode, $params->fetchArg, $params->fetchCtorArgs)
-            ->log($params->log)
-            ->cache($params->cache);
+            ->pkey($parameters->pkey)
+            ->fetchMode($parameters->fetchMode, $parameters->fetchArg, $parameters->fetchCtorArgs)
+            ->log($parameters->log)
+            ->cache($parameters->cache);
     }
 
     /**
@@ -844,7 +844,7 @@ class APDOStatement
             $this->args
         );
 
-        return $this->params->apdo->pdo()->lastInsertId();
+        return $this->parameters->apdo->pdo()->lastInsertId();
     }
 
     /**
@@ -900,12 +900,12 @@ class APDOStatement
         }
 
         if (isset($result)) {
-            ++$this->params->cachedCount;
+            ++$this->parameters->cachedCount;
         } else {
             $this->logAdd($statement, $args);
-            $sth = $this->params->apdo->pdo()->prepare($statement);
+            $sth = $this->parameters->apdo->pdo()->prepare($statement);
             $result = $sth->execute($args);
-            ++$this->params->executedCount;
+            ++$this->parameters->executedCount;
             $this->rowCount = $sth->rowCount();
 
             if ($needFetch) {
@@ -935,7 +935,7 @@ class APDOStatement
         }
 
         $this->lastQuery = $statement;
-        $this->params->last = $this;
+        $this->parameters->last = $this;
 
         return $result;
     }

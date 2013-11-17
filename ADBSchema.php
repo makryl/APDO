@@ -19,7 +19,6 @@ namespace aeqdev;
 class ADBSchema extends APDO
 {
 
-    public $namespace;
     public $catalog;
     public $name;
     public $prefix;
@@ -29,54 +28,54 @@ class ADBSchema extends APDO
     {
         $schema = $this->read();
 
-        $s = "<?php\n\n";
+        $f = fopen($file, 'w');
+        fwrite($f, "<?php\n\n");
 
         if (!empty($namespace)) {
-            $s .= "namespace $namespace;\n\n";
+            fwrite($f, "namespace $namespace;\n\n");
             $namespace = '\\' . $namespace;
         }
 
-        $s .= $this->renderSchema($schema, $class, $namespace);
+        $this->renderSchema($f, $schema, $class, $namespace);
 
         foreach ($schema as $table => $tdata) {
-            $s .= $this->renderTable($table, $tdata, $class, $namespace);
-            $s .= $this->renderRow($table, $tdata, $namespace);
+            $this->renderTable($f, $table, $tdata, $class, $namespace);
+            $this->renderRow($f, $table, $tdata, $namespace);
         }
 
-        file_put_contents($file, $s, LOCK_EX);
+        fclose($f);
     }
 
-    protected function renderSchema($schema, $class, $namespace)
+    protected function renderSchema($f, $schema, $class, $namespace)
     {
-        $s = "/**\n";
-        foreach ($schema as $table => $tdata) {
-            $s .= " * @property $namespace\\Table_$table \${$table}\n";
-        }
-        $s .= " */\n";
-        $s .= "class $class extends \\aeqdev\\ADBSchema\n{\n";
-        $s .= "    public \$namespace = __NAMESPACE__;\n";
+        fwrite($f, "class $class extends \\aeqdev\\ADBSchema\n{\n");
         if (!empty($this->catalog)) {
-            $s .= "    public \$catalog = '{$this->catalog}';\n";
+            fwrite($f, "    public \$catalog = '{$this->catalog}';\n");
         }
         if (!empty($this->name)) {
-            $s .= "    public \$name = '{$this->name}';\n";
+            fwrite($f, "    public \$name = '{$this->name}';\n");
         }
         if (!empty($this->prefix)) {
-            $s .= "    public \$prefix = '{$this->prefix}';\n";
+            fwrite($f, "    public \$prefix = '{$this->prefix}';\n");
         }
-        $s .= "}\n\n";
-
-        return $s;
+        if (!empty($schema)) {
+            fwrite($f, "\n");
+            foreach ($schema as $table => $tdata) {
+                fwrite($f, "    /** @return $namespace\\Table_{$table} */\n");
+                fwrite($f, "    public function {$table}() { return new Table_{$table}(\$this->parameters); }\n");
+            }
+        }
+        fwrite($f, "}\n\n");
     }
 
-    protected function renderTable($table, $tdata, $class, $namespace)
+    protected function renderTable($f, $table, $tdata, $class, $namespace)
     {
-        $s = "/**\n";
-        $s .= " * @property $namespace\\$class \$schema\n";
-        $s .= " *\n";
-        $s .= " * @method $namespace\\Row_{$table}[] fetchAll\n";
-        $s .= " * @method $namespace\\Row_{$table} fetchOne\n";
-        $s .= " *\n";
+        fwrite($f, "/**\n");
+        fwrite($f, " * @property $namespace\\$class \$schema\n");
+        fwrite($f, " *\n");
+        fwrite($f, " * @method $namespace\\Row_{$table}[] fetchAll\n");
+        fwrite($f, " * @method $namespace\\Row_{$table} fetchOne\n");
+        fwrite($f, " *\n");
         if ($this->overrideMethodDocs) {
             foreach ([
                 'log',
@@ -102,73 +101,61 @@ class ADBSchema extends APDO
                 'referrers',
                 'references',
             ] as $method) {
-                $s .= " * @method $namespace\\Table_{$table} $method\n";
+                fwrite($f, " * @method $namespace\\Table_{$table} $method\n");
             }
         }
-        $s .= " */\n";
-        $s .= "class Table_{$table} extends \\aeqdev\\ADBSchemaTable\n";
-        $s .= "{\n";
-        $s .= "    public \$name = '$table';\n";
+        fwrite($f, " */\n");
+        fwrite($f, "class Table_{$table} extends \\aeqdev\\ADBSchemaTable\n");
+        fwrite($f, "{\n");
+        fwrite($f, "    public \$name = '$table';\n");
         if (!empty($tdata['pkey'])) {
             if (count($tdata['pkey']) == 1) {
-                $s .= "    public \$pkey = '{$tdata['pkey'][0]}';\n";
+                fwrite($f, "    public \$pkey = '{$tdata['pkey'][0]}';\n");
             } else {
-                $s .= "    public \$pkey = ['" . implode("', '", $tdata['pkey']) . "'];\n";
+                fwrite($f, "    public \$pkey = ['" . implode("', '", $tdata['pkey']) . "'];\n");
             }
         }
         if (!empty($tdata['fkey'])) {
-            $s .= "    public \$fkey = [\n";
+            fwrite($f, "    public \$fkey = [\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                $s .= "        '$rtable' => '$fkey',\n";
+                fwrite($f, "        '$rtable' => '$fkey',\n");
             }
-            $s .= "    ];\n";
+            fwrite($f, "    ];\n");
         }
-        $s .= "}\n\n";
-
-        return $s;
+        fwrite($f, "}\n\n");
     }
 
-    protected function renderRow($table, $tdata, $namespace)
+    protected function renderRow($f, $table, $tdata, $namespace)
     {
-        $s = "/**\n";
-        $s .= " * @property $namespace\\Table_{$table} \$table\n";
-        if (!empty($tdata['fkey'])) {
-            $s .= " *\n";
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                $s .= " * @method $namespace\\Row_{$rtable} $rtable\n";
-            }
-        }
-        if (!empty($tdata['refs'])) {
-            $s .= " *\n";
-            foreach ($tdata['refs'] as $rtable) {
-                $s .= " * @method $namespace\\Row_{$rtable}[] $rtable\n";
-            }
-        }
-        $s .= " */\n";
-        $s .= "class Row_{$table} extends \\aeqdev\\ADBSchemaRow\n";
-        $s .= "{\n";
+        fwrite($f, "/**\n");
+        fwrite($f, " * @property $namespace\\Table_{$table} \$table\n");
+        fwrite($f, " */\n");
+        fwrite($f, "class Row_{$table} extends \\aeqdev\\ADBSchemaRow\n");
+        fwrite($f, "{\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col) {
-                $s .= "    public \${$col};\n";
+                fwrite($f, "    public \${$col};\n");
             }
         }
         if (!empty($tdata['fkey'])) {
-            $s .= "\n";
+            fwrite($f, "\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                $s .= "    /** @var $namespace\\Row_{$rtable} */\n";
-                $s .= "    public \${$rtable};\n";
+                fwrite($f, "    /** @var $namespace\\Row_{$rtable} */\n");
+                fwrite($f, "    public \${$rtable};\n");
+                fwrite($f, "    /** @return $namespace\\Row_{$rtable} */\n");
+                fwrite($f, "    public function {$rtable}() { return \$this->table->schema->{$rtable}()->referrers(\$this)->fetchOne(); }\n");
             }
         }
         if (!empty($tdata['refs'])) {
-            $s .= "\n";
+            fwrite($f, "\n");
             foreach ($tdata['refs'] as $rtable) {
-                $s .= "    /** @var $namespace\\Row_{$rtable}[] */\n";
-                $s .= "    public \${$rtable} = [];\n";
+                fwrite($f, "    /** @var $namespace\\Row_{$rtable}[] */\n");
+                fwrite($f, "    public \${$rtable} = [];\n");
+                fwrite($f, "    /** @return $namespace\\Row_{$rtable}[] */\n");
+                fwrite($f, "    public function {$rtable}() { return \$this->table->schema->{$rtable}()->references(\$this)->fetchAll(); }\n");
             }
         }
-        $s .= "}\n\n";
-
-        return $s;
+        fwrite($f, "}\n\n");
     }
 
     protected function read()
@@ -298,12 +285,6 @@ ORDER BY
         }
     }
 
-    public function __get($name)
-    {
-        $tableClass = '\\' . $this->namespace . '\\Table_' . $name;
-        return new $tableClass($this->params, $this);
-    }
-
 }
 
 /**
@@ -321,18 +302,18 @@ class ADBSchemaTable extends APDOStatement
     public $pkey;
     public $fkey;
 
-    public function __construct(APDOParameters $params, ADBSchema $schema, $statement = null, $args = null)
+    public function __construct(APDOParameters $params, $statement = null, $args = null)
     {
         parent::__construct($params, $statement, $args);
 
-        $this->schema = $schema;
+        $this->schema = $params->apdo;
 
         $this
             ->table($this->schema->prefix . $this->name)
             ->pkey($this->pkey)
             ->fetchMode(
                 \PDO::FETCH_CLASS,
-                '\\' . $this->schema->namespace . '\\Row_' . $this->name,
+                str_replace('\\Table_', '\\Row_', get_class($this)),
                 [$this]
             );
     }
@@ -395,7 +376,6 @@ class ADBSchemaTable extends APDOStatement
         );
     }
 
-
 }
 
 /**
@@ -412,15 +392,6 @@ class ADBSchemaRow
     function __construct(ADBSchemaTable $table)
     {
         $this->table = $table;
-    }
-
-    public function __call($name, $args)
-    {
-        if (isset($this->table->fkey[$name])) {
-            return $this->table->schema->{$name}->referrers($this)->fetchOne();
-        } else {
-            return $this->table->schema->{$name}->references($this)->fetchAll();
-        }
     }
 
 }
