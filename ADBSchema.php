@@ -318,15 +318,6 @@ class ADBSchemaTable extends APDOStatement
             );
     }
 
-    /**
-     * @param array         $data           Data.
-     * @param string        $referrer       Name of references in result array
-     * @param string        $reference      Name of references in data array.
-     * @param string        $key            Key name, that used to extract values for condition.
-     *                                      By default is equal to $reference.
-     * @param string        $pkey           Sets primary key to the statement. Will be used in condition.
-     * @return \static                      Current statement.
-     */
     public function referrers(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
     {
         if (empty($data)) {
@@ -347,15 +338,6 @@ class ADBSchemaTable extends APDOStatement
         );
     }
 
-    /**
-     * @param array         $data           Data.
-     * @param string        $referrer       Name of references in data array
-     * @param string        $reference      Name of references in result array.
-     * @param string        $key            Key name, that used in condition.
-     *                                      By default is equal to $reference.
-     * @param string        $pkey           Primary key, that used to extract values for condition.
-     * @return \static                      Current statement.
-     */
     public function references(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
     {
         if (empty($data)) {
