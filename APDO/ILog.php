@@ -11,13 +11,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-namespace aeqdev\apdo;
+namespace aeqdev\APDO;
 
-
-
-interface ICache
+interface ILog
 {
-    function get($name);
-    function set($name, $value);
-    function clear();
+    public function debug($msg);
 }

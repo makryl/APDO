@@ -11,9 +11,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-namespace aeqdev\apdo;
-
-
+namespace aeqdev\APDO;
 
 /**
  * Simple array cache for APDO.
@@ -26,21 +24,15 @@ class ArrayCache implements ICache
 
     protected $cache = [];
 
-
-
     public function clear()
     {
         $this->cache = [];
     }
 
-
-
     public function get($name)
     {
-        return @$this->cache[$name];
+        return issset($this->cache[$name]) ? $this->cache[$name] : null;
     }
-
-
 
     public function set($name, $value)
     {

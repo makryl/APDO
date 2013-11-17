@@ -14,10 +14,8 @@
 namespace aeqdev;
 
 use \PDO;
-use apdo\ILog;
-use apdo\ICache;
-
-
+use APDO\ILog;
+use APDO\ICache;
 
 /**
  * Represents connection to database.
@@ -33,35 +31,17 @@ use apdo\ICache;
 class APDO
 {
 
-    private $pdo;
+    protected $pdo;
 
-    private $dsn;
-    private $username;
-    private $password;
-    private $options;
-
-    private $pkey = 'id';
+    protected $dsn;
+    protected $username;
+    protected $password;
+    protected $options;
 
     /**
-     * @var ILog
+     * @var APDOParameters
      */
-    private $log;
-
-    /**
-     * @var ICache
-     */
-    private $cache;
-
-    private $statementCount;
-    private $executedCount;
-    private $cachedCount;
-
-    /**
-     * @var APDOStatement
-     */
-    private $last;
-
-
+    protected $params;
 
     /**
      * Stores connection parameters.
@@ -76,15 +56,16 @@ class APDO
      * @param string        $password
      * @param string        $options
      */
-    function __construct($dsn, $username, $password, $options)
+    public function __construct($dsn, $username = null, $password = null, $options = null)
     {
         $this->dsn = $dsn;
         $this->username = $username;
         $this->password = $password;
         $this->options = $options;
+
+        $this->params = new APDOParameters();
+        $this->params->apdo = $this;
     }
-
-
 
     /**
      * Returns PDO object.
@@ -92,79 +73,79 @@ class APDO
      *
      * @return \PDO                         Associated PDO object.
      */
-    function pdo()
+    public function pdo()
     {
-        if (!isset($this->pdo))
-        {
+        if (!isset($this->pdo)) {
             $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
             $this->executedCount = 0;
         }
         return $this->pdo;
     }
 
-
-
     /**
      * @return bool                         True if connection established, false otherwise.
      */
-    function connected()
+    public function connected()
     {
         return isset($this->pdo);
     }
 
-
-
     /**
      * @return int                          Count of created statements.
      */
-    function statementCount()
+    public function statementCount()
     {
-        return $this->statementCount;
+        return $this->params->statementCount;
     }
-
-
 
     /**
      * @return int                          Count of queries sent to database.
      */
-    function executedCount()
+    public function executedCount()
     {
-        return $this->executedCount;
+        return $this->params->executedCount;
     }
-
-
 
     /**
      * @return int                          Count of cached queries (that queries was not sent to database).
      */
-    function cachedCount()
+    public function cachedCount()
     {
-        return $this->cachedCount;
+        return $this->params->cachedCount;
     }
-
-
 
     /**
      * @return \aeqdev\APDOStatement        Last exequted statement.
      */
-    function last()
+    public function last()
     {
-        return $this->last;
+        return $this->params->last;
     }
-
-
 
     /**
      * Sets default primary key name for new statements.
      *
      * @param string $pkey                  Primary key name.
      */
-    function setPkey($pkey)
+    public function setPkey($pkey)
     {
-        $this->pkey = $pkey;
+        $this->params->pkey = $pkey;
     }
 
-
+    /**
+     * Sets default fetch style for new statements.
+     * See details in PDOStatement::setFetchMode.
+     *
+     * @param string $fetch                 PDO fetch mode.
+     * @param string $fetchArg              Column number or class name or object.
+     * @param string $fetchCtorArgs         Constructor arguments.
+     */
+    public function setFetchMode($fetchMode, $fetchArg = null, $fetchCtorArgs = null)
+    {
+        $this->params->fetchMode = $fetchMode;
+        $this->params->fetchArg = $fetchArg;
+        $this->params->fetchCtorArgs = $fetchCtorArgs;
+    }
 
     /**
      * Sets or removes default logger of queries, sent to database, for new statements.
@@ -172,12 +153,10 @@ class APDO
      *
      * @param null|ILog             $log    Logger to set as default.
      */
-    function setLog($log = null)
+    public function setLog($log = null)
     {
-        $this->log = $log;
+        $this->params->log = $log;
     }
-
-
 
     /**
      * Sets or removes default cacher for new statements.
@@ -186,12 +165,10 @@ class APDO
      *
      * @param null|ICache           $cache Cacher to set as default.
      */
-    function setCache($cache = null)
+    public function setCache($cache = null)
     {
-        $this->cache = $cache;
+        $this->params->cache = $cache;
     }
-
-
 
     /**
      * Creates new statement.
@@ -200,19 +177,10 @@ class APDO
      * @param string|array  $args           Argument or array of arguments for the statement.
      * @return \aeqdev\APDOStatement        Created statement.
      */
-    function statement($statement = null, $args = null)
+    public function statement($statement = null, $args = null)
     {
-        return (new APDOStatement(
-            $this, $statement, $args,
-            $this->statementCount, $this->executedCount, $this->cachedCount,
-            $this->last
-        ))
-            ->pkey($this->pkey)
-            ->log($this->log)
-            ->cache($this->cache);
+        return new APDOStatement($this->params, $statement, $args);
     }
-
-
 
     /**
      * Creates new statement and sets table name.
@@ -220,13 +188,10 @@ class APDO
      * @param string        $table          Table name.
      * @return \aeqdev\APDOStatement        Created statement.
      */
-    function from($table)
+    public function from($table)
     {
-        return $this->statement()
-            ->table($table);
+        return $this->statement()->table($table);
     }
-
-
 
     /**
      * Creates new statement and sets table name.
@@ -235,10 +200,47 @@ class APDO
      * @param string        $table          Table name.
      * @return \aeqdev\APDOStatement        Created statement.
      */
-    function in($table)
+    public function in($table)
     {
         return $this->from($table);
     }
+
+}
+
+
+
+class APDOParameters
+{
+
+    /**
+     * @var APDO
+     */
+    public $apdo;
+
+    public $pkey = 'id';
+
+    public $fetchMode = PDO::FETCH_OBJ;
+    public $fetchArg;
+    public $fetchCtorArgs;
+
+    /**
+     * @var ILog
+     */
+    public $log;
+
+    /**
+     * @var ICache
+     */
+    public $cache;
+
+    public $statementCount;
+    public $executedCount;
+    public $cachedCount;
+
+    /**
+     * @var APDOStatement
+     */
+    public $last;
 
 }
 
@@ -248,67 +250,63 @@ class APDOStatement
 {
 
     /**
-     * @var APDO
+     * @var APDOParameters
      */
-    private $apdo;
+    protected $params;
 
     /**
      * @var ILog
      */
-    private $log;
+    protected $log;
 
     /**
      * @var ICache
      */
-    private $cache;
+    protected $cache;
 
-    private $nothing = false;
-    private $statement;
-    private $table;
-    private $pkey;
-    private $where;
-    private $groupby;
-    private $having;
-    private $orderby;
-    private $limit;
-    private $offset = 0;
-    private $fields = '*';
-    private $args = [];
-    private $handlers = [];
+    protected $fetchMode;
+    protected $fetchArg;
+    protected $fetchCtorArgs;
 
-    private $rowCount;
-    private $lastQuery;
-    private $last;
+    protected $nothing = false;
+    protected $statement;
+    protected $table;
+    protected $pkey;
+    protected $where;
+    protected $groupby;
+    protected $having;
+    protected $orderby;
+    protected $limit;
+    protected $offset = 0;
+    protected $fields = '*';
+    protected $args = [];
+    protected $handlers = [];
 
-    private $executedCount;
-    private $cachedCount;
-
-
+    protected $rowCount;
+    protected $lastQuery;
 
     /**
-     * Stores creator APDO object.
+     * Stores creator APDO parameters.
      * Sets SQL statement and it's arguments.
      *
-     * @param \aeqdev\APDO  $apdo           APDO object to associate with.
+     * @param \aeqdev\APDOParameters $params APDOParameters object.
      * @param string        $statement      SQL statement.
      * @param string|array  $args           Argument or array of arguments for the statement.
      */
-    function __construct(
-        APDO $apdo, $statement = null, $args = null,
-        &$statementCount = null, &$executedCount = null, &$cachedCount = null,
-        &$last = null
-    ) {
-        $this->apdo = $apdo;
+    public function __construct(APDOParameters $params, $statement = null, $args = null)
+    {
+        $this->params = $params;
         $this->statement = $statement;
         $this->args = isset($args) ? $args : [];
 
-        ++$statementCount;
-        $this->executedCount =& $executedCount;
-        $this->cachedCount =& $cachedCount;
-        $this->last =& $last;
+        ++$params->statementCount;
+
+        $this
+            ->pkey($params->pkey)
+            ->fetchMode($params->fetchMode, $params->fetchArg, $params->fetchCtorArgs)
+            ->log($params->log)
+            ->cache($params->cache);
     }
-
-
 
     /**
      * Adds statement and it's arguments to the log.
@@ -316,113 +314,112 @@ class APDOStatement
      * @param string        $statement      SQL statement
      * @param string|array  $args           Argument or array of arguments for the statement.
      */
-    private function logAdd($statement, $args = null)
+    protected function logAdd($statement, $args = null)
     {
-        if (isset($this->log))
-        {
+        if (isset($this->log)) {
             $this->log->debug($statement);
-            if (!empty($args))
-            {
+            if (!empty($args)) {
                 $this->log->debug(print_r($args, true));
             }
         }
     }
 
-
-
     /**
      * Sets or removes logger of queries, sent to database, for the statement.
      * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|ILog             $log    Logger.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @param null|ILog                     $log    Logger.
+     * @return \static                      Current statement.
      */
-    function log($log = null)
+    public function log($log = null)
     {
         $this->log = $log;
         return $this;
     }
-
-
 
     /**
      * Sets or removes cacher for the statement.
      * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|ICache           $cache  Cacher.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @param null|ICache                   $cache  Cacher.
+     * @return \static                      Current statement.
      */
 
-    function cache($cache = null)
+    public function cache($cache = null)
     {
         $this->cache = $cache;
         return $this;
     }
 
-
-
     /**
      * @return int                          Count of rows, affected by last query.
      */
-    function rowCount()
+    public function rowCount()
     {
         return $this->rowCount;
     }
 
-
-
     /**
      * @return string                       Last exequted query.
      */
-    function lastQuery()
+    public function lastQuery()
     {
         return $this->lastQuery;
     }
-
-
 
     /**
      * After calling this method, result will always empty array,
      * and no query will sent to database.
      *
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function nothing()
+    public function nothing()
     {
         $this->nothing = true;
         return $this;
     }
 
-
-
     /**
      * Sets table name for the statement.
      *
      * @param string        $table          Table name.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function table($table)
+    public function table($table)
     {
         $this->table = $table;
         return $this;
     }
 
-
-
     /**
      * Sets primary key name for the statement.
      *
      * @param string        $name           Primary key name, or array of names for complex primary key.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function pkey($name)
+    public function pkey($name)
     {
         $this->pkey = $name;
         return $this;
     }
 
-
+    /**
+     * Sets fetch style for the statement, that will be used in methods all(), page() and one().
+     * See details in PDOStatement::setFetchMode
+     *
+     * @param string $fetch                 PDO fetch mode.
+     * @param string $fetchArg              Column number or class name or object.
+     * @param string $fetchCtorArgs         Constructor arguments.
+     * @return \static                      Current statement.
+     */
+    public function fetchMode($fetchMode, $fetchArg = null, $fetchCtorArgs = null)
+    {
+        $this->fetchMode = $fetchMode;
+        $this->fetchArg = $fetchArg;
+        $this->fetchCtorArgs = $fetchCtorArgs;
+        return $this;
+    }
 
     /**
      * Adds an JOIN to FROM section of the statement.
@@ -431,20 +428,17 @@ class APDOStatement
      * @param string        $on             Join condition.
      * @param string|array  $args           Argument or array of arguments for join conditions.
      * @param string        $joinType       Join type definition.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function join($table, $on = null, $args = null, $joinType = '')
+    public function join($table, $on = null, $args = null, $joinType = '')
     {
         $this->table .= "\n$joinType JOIN " . $table;
-        if (!empty($on))
-        {
+        if (!empty($on)) {
             $this->table .= ' ON (' . $on . ')';
             $this->args = array_merge($this->args, (array)$args);
         }
         return $this;
     }
-
-
 
     /**
      * Adds an LEFT JOIN to FROM section of the statement.
@@ -453,14 +447,12 @@ class APDOStatement
      * @param string        $table          Table name to join with.
      * @param string        $on             Join conditions.
      * @param string|array  $args           Argument or array of arguments for join conditions.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function leftJoin($table, $on = null, $args = null)
+    public function leftJoin($table, $on = null, $args = null)
     {
         return $this->join($table, $on, $args, 'LEFT');
     }
-
-
 
     /**
      * Adds conditions to the statement.
@@ -473,16 +465,13 @@ class APDOStatement
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function where($where, $args = null, $or = false)
+    public function where($where, $args = null, $or = false)
     {
-        if (empty($this->where))
-        {
+        if (empty($this->where)) {
             $this->where = $where;
-        }
-        else
-        {
+        } else {
             $this->where
                 = '(' . $this->where . ')'
                 . ($or ? ' OR ' : ' AND ')
@@ -492,8 +481,6 @@ class APDOStatement
         return $this;
     }
 
-
-
     /**
      * Adds conditions to the statement.
      *
@@ -501,14 +488,12 @@ class APDOStatement
      *
      * @param string        $where          Conditions.
      * @param string|array  $args           Argument or array of arguments for conditions.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function orWhere($where, $args = null)
+    public function orWhere($where, $args = null)
     {
         return $this->where($where, $args, true);
     }
-
-
 
     /**
      * Adds an key-value condition to the statement.
@@ -524,35 +509,27 @@ class APDOStatement
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function key($args, $name = null, $or = false)
+    public function key($args, $name = null, $or = false)
     {
-        if (empty($name))
-        {
+        if (empty($name)) {
             $name = $this->pkey;
         }
-        if (is_array($name))
-        {
-            foreach ($name as $i => $n)
-            {
+        if (is_array($name)) {
+            foreach ($name as $i => $n) {
                 $this->key($args[$i], $n, $or);
             }
             return $this;
         }
-        if (is_array($args))
-        {
+        if (is_array($args)) {
             $where = $name . ' IN (' . implode(',', array_fill(0, count($args), '?')) . ')';
-        }
-        else
-        {
+        } else {
             $args = [$args];
             $where = $name . '=?';
         }
         return $this->where($where, $args, $or);
     }
-
-
 
     /**
      * Adds an key-value condition to the statement.
@@ -564,139 +541,119 @@ class APDOStatement
      *
      * @param string|array  $args           Value or array of values.
      * @param string|array  $name           Field name or array of field names. By default primary key name is used.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function orKey($args, $name = null)
+    public function orKey($args, $name = null)
     {
         return $this->key($args, $name, true);
     }
-
-
 
     /**
      * Sets GROUP BY section of the statement.
      *
      * @param string        $groupby        Group by definition.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function groupBy($groupby)
+    public function groupBy($groupby)
     {
         $this->groupby = $groupby;
         return $this;
     }
-
-
 
     /**
      * Sets HAVING section of the statement.
      *
      * @param string        $having         Having definition.
      * @param string|array  $args           Argument or array of arguments for having conditions.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function having($having, $args = null)
+    public function having($having, $args = null)
     {
         $this->having = $having;
         $this->args = array_merge($this->args, (array)$args);
         return $this;
     }
 
-
-
     /**
      * Sets ORDER BY section of the statement.
      *
      * @param string        $orderby        Order by definition.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function orderBy($orderby)
+    public function orderBy($orderby)
     {
         $this->orderby = $orderby;
         return $this;
     }
-
-
 
     /**
      * Adds field with sort direction to ORDER BY section of the statement.
      *
      * @param string        $field          Field name.
      * @param bool          $desc           Default false for ASC, true for DESC.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function addOrderBy($field, $desc = false)
+    public function addOrderBy($field, $desc = false)
     {
-        if (!empty($this->orderby))
-        {
+        if (!empty($this->orderby)) {
             $this->orderby .= ', ';
         }
         $this->orderby .= $field;
-        if ($desc)
-        {
+        if ($desc) {
             $this->orderby .= ' DESC';
         }
         return $this;
     }
 
-
-
     /**
      * Sets LIMIT section of the statement.
      *
      * @param int           $limit          Limit definition.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function limit($limit)
+    public function limit($limit)
     {
         $this->limit = $limit;
         return $this;
     }
 
-
-
     /**
      * Sets OFFSET section of the statement.
      *
      * @param int           $offset         Offset definition.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function offset($offset)
+    public function offset($offset)
     {
         $this->offset = $offset;
         return $this;
     }
-
-
 
     /**
      * Sets fields of the statement.
      * First argument can be string with fields list, or an array of filed names.
      *
      * @param string|array  $fields         Fields.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function fields($fields)
+    public function fields($fields)
     {
         $this->fields = implode(', ', (array)$fields);
         return $this;
     }
-
-
 
     /**
      * Adds handler function, that will be executed on result.
      * Handler function should have result argument and return modified result.
      *
      * @param callback      $handler        Handler function for results.
-     * @return \aeqdev\APDOStatement        Current statement.
+     * @return \static                      Current statement.
      */
-    function handler($handler)
+    public function handler($handler)
     {
         $this->handlers [] = $handler;
         return $this;
     }
-
-
 
     /**
      * Executes handlers on result.
@@ -704,47 +661,19 @@ class APDOStatement
      * @param array         $result         Result array.
      * @return array                        Result array.
      */
-    private function handlers($result)
+    protected function handlers($result)
     {
-        foreach ($this->handlers as $handler)
-        {
+        foreach ($this->handlers as $handler) {
             $result = $handler($result);
         }
         return $result;
     }
 
-
-
     /**
-     * Executes SELECT query and returns it's result.
-     *
-     * Builds SQL using the statement.
-     * Sends query to database or retrieves result from cache.
-     * Call handlers on result array.
-     *
-     * Result retrieves from database using PDO's method fetchAll()
-     *
-     * @param int           $fetch_style    PDO fetch style.
-     * @return array                        Result array.
+     * Builds SELECT query using statement's parameters.
+     * @return string
      */
-    function all($fetch_style = PDO::FETCH_ASSOC)
-    {
-        return $this->handlers(
-            $this->nothing
-                ? []
-                : $this->query(
-                    $this->statement ? : $this->buildSelect(),
-                    $this->args,
-                    empty($this->statement),
-                    true,
-                    $fetch_style
-                )
-        );
-    }
-
-
-
-    function buildSelect()
+    public function buildSelect()
     {
         return 'SELECT ' . $this->fields
             . "\nFROM " . $this->table
@@ -756,7 +685,36 @@ class APDOStatement
             . (!empty($this->offset)    ? "\nOFFSET "   . $this->offset     : '');
     }
 
-
+    /**
+     * Executes SELECT query and returns it's result.
+     *
+     * Builds SQL using the statement.
+     * Sends query to database or retrieves result from cache.
+     * Call handlers on result array.
+     *
+     * Result retrieves from database using PDO's method fetchAll()
+     *
+     * @return array|object[]               Result array.
+     */
+    public function fetchAll($fetchMode = null, $fetchArg = null, $fetchCtorArgs = null)
+    {
+        if (isset($fetchMode)) {
+            $this->fetchMode($fetchMode, $fetchArg, $fetchCtorArgs);
+        }
+        return $this->handlers(
+            $this->nothing
+                ? []
+                : $this->query(
+                    $this->statement ? : $this->buildSelect(),
+                    $this->args,
+                    empty($this->statement),
+                    true,
+                    $this->fetchMode,
+                    $this->fetchArg,
+                    $this->fetchCtorArgs
+                )
+        );
+    }
 
     /**
      * Same as method all() with fetch style PDO::FETCH_KEY_PAIR.
@@ -764,28 +722,41 @@ class APDOStatement
      *
      * @return array                        Result array.
      */
-    function allK()
+    public function fetchPairs($name = null, $keyName = null)
     {
-        return $this->all(PDO::FETCH_KEY_PAIR);
+        return $this
+            ->fields([
+                isset($keyName) ? $keyName : $this->pkey,
+                isset($name) ? $name : $this->pkey,
+            ])
+            ->fetchAll(PDO::FETCH_KEY_PAIR);
     }
 
-
+    /**
+     * Same as method all() with offset calculated from page number and current limit.
+     *
+     * @param int           $page           Page number.
+     * @return array|object[]               Result array.
+     */
+    public function fetchPage($page = 1)
+    {
+        return $this
+            ->offset($this->limit * (($page ? : 1) - 1))
+            ->fetchAll();
+    }
 
     /**
      * Same as method all() with limit 1, and returns first element of result array or null if result is empty.
      *
-     * @param int           $fetch_style    PDO fetch style.
-     * @return array                        Result array.
+     * @return array|object                 Result array.
      */
-    function one($fetch_style = PDO::FETCH_ASSOC)
+    public function fetchOne($fetchMode = null, $fetchArg = null, $fetchCtorArgs = null)
     {
         $r = $this
             ->limit(1)
-            ->all($fetch_style);
+            ->fetchAll($fetchMode, $fetchArg, $fetchCtorArgs);
         return empty($r) ? null : $r[0];
     }
-
-
 
     /**
      * Same as method one() with fetch stype PDO::FETCH_NUM.
@@ -793,63 +764,25 @@ class APDOStatement
      *
      * @return array                        Result array.
      */
-    function oneL()
-    {
-        return $this->one(PDO::FETCH_NUM);
-    }
-
-
-
-    /**
-     * Same as method all() with offset calculated from page number and current limit.
-     *
-     * @param int           $page           Page number.
-     * @param int           $fetch_style    PDO fetch style.
-     * @return array                        Result array.
-     */
-    function page($page = 1, $fetch_style = PDO::FETCH_ASSOC)
+    public function fetchRow($fields)
     {
         return $this
-            ->offset($this->limit * (($page ? : 1) - 1))
-            ->all($fetch_style);
+            ->fields($fields)
+            ->fetchOne(PDO::FETCH_NUM);
     }
 
-
-
     /**
-     * Same as method page() with fetch style PDO::FETCH_KEY_PAIR.
-     * Intended to retrieve key-value result array.
+     * Same as method one() with fetch stype PDO::FETCH_NUM.
+     * Intended to use with php language construct list().
      *
-     * @param int           $page           Page number.
-     * @return array                        Result array.
+     * @return string                       Result cell value.
      */
-    function pageK($page = 1)
+    public function fetchCell($field)
     {
-        return $this->page($page, PDO::FETCH_KEY_PAIR);
-    }
-
-
-
-    /**
-     * Retrives array of specified field values only.
-     * Keys and values of result array will be the same.
-     * By default primary key name used.
-     *
-     * @param string        $name           Field name. Primary key name by default.
-     * @return array                        Result array.
-     */
-    function keys($name = null)
-    {
-        if (empty($name))
-        {
-            $name = $this->pkey;
-        }
         return $this
-            ->fields([$name, $name])
-            ->allK();
+            ->fields($field)
+            ->fetchOne(PDO::FETCH_COLUMN);
     }
-
-
 
     /**
      * Executes SELECT COUNT(*) query, using statement's table name and conditions, and returns count.
@@ -857,28 +790,26 @@ class APDOStatement
      *
      * @return int                          Retrived count.
      */
-    function count()
+    public function count()
     {
-        $statement = "SELECT COUNT(*)\nFROM " . $this->table
-            . (!empty($this->where) ? "\nWHERE " . $this->where : '');
-
-        list($count) = $this->query($statement, $this->args, false, true, PDO::FETCH_NUM)[0];
-        return $count;
+        return $this->query(
+            "SELECT COUNT(*)\nFROM " . $this->table
+                . (!empty($this->where) ? "\nWHERE " . $this->where : ''),
+            $this->args,
+            false,
+            true,
+            PDO::FETCH_COLUMN)[0];
     }
-
-
 
     /**
      * Executes statement.
      *
      * @return bool                         True on success or false on failure.
      */
-    function execute()
+    public function execute()
     {
         return $this->query($this->statement, $this->args);
     }
-
-
 
     /**
      * Executes INSERT query using statement's table name,
@@ -889,19 +820,16 @@ class APDOStatement
      * @param array         $values         Array of values or array of arrays of values to insert.
      * @return int                          Last inserted id.
      */
-    function insert(array $values)
+    public function insert(array $values)
     {
-        if (!isset($values[0]))
-        {
+        if (!isset($values[0])) {
             $values = [$values];
         }
 
         $names = array_keys($values[0]);
         $this->args = [];
-        foreach ($values as $v)
-        {
-            foreach ($v as $a)
-            {
+        foreach ($values as $v) {
+            foreach ($v as $a) {
                 $this->args [] = $a;
             }
         }
@@ -916,10 +844,8 @@ class APDOStatement
             $this->args
         );
 
-        return $this->apdo->pdo()->lastInsertId();
+        return $this->params->apdo->pdo()->lastInsertId();
     }
-
-
 
     /**
      * Executes UPDATE query using statement's table name, conditions,
@@ -928,10 +854,9 @@ class APDOStatement
      * @param array         $values         Array of values to update.
      * @return bool                         True on success or false on failure.
      */
-    function update(array $values)
+    public function update(array $values)
     {
-        if (empty($values))
-        {
+        if (empty($values)) {
             return true;
         }
 
@@ -945,14 +870,12 @@ class APDOStatement
         );
     }
 
-
-
     /**
      * Exequtes DELETE query using statement's table name and conditions.
      *
      * @return bool                         True on success or false on failure.
      */
-    function delete()
+    public function delete()
     {
         return $this->query(
             'DELETE FROM ' . $this->table
@@ -961,75 +884,76 @@ class APDOStatement
         );
     }
 
-
-
-    private function query($statement, $args = null,
-        $canCacheRow = false, $needFetch = false, $fetch_style = PDO::FETCH_ASSOC)
-    {
+    protected function query(
+        $statement,
+        $args = null,
+        $canCacheRow = false,
+        $needFetch = false,
+        $fetchMode = null,
+        $fetchArg = null,
+        $fetchCtorArgs = null
+    ) {
         $args = (array)$args;
 
-        if ($needFetch)
-        {
-            $result = $this->cacheGetStatement($statement, $args, $fetch_style);
+        if ($needFetch) {
+            $result = $this->cacheGetStatement($statement, $args, $fetchMode);
         }
 
-        if (isset($result))
-        {
-            ++$this->cachedCount;
-        }
-        else
-        {
+        if (isset($result)) {
+            ++$this->params->cachedCount;
+        } else {
             $this->logAdd($statement, $args);
-            $sth = $this->apdo->pdo()->prepare($statement);
+            $sth = $this->params->apdo->pdo()->prepare($statement);
             $result = $sth->execute($args);
-            ++$this->executedCount;
+            ++$this->params->executedCount;
             $this->rowCount = $sth->rowCount();
 
-            if ($needFetch)
-            {
-                $result = $sth->fetchAll($fetch_style);
-                $this->cacheSetStatement($statement, $args, $fetch_style, $result, $canCacheRow);
+            if ($needFetch) {
+                if (isset($fetchMode)) {
+                    if (isset($fetchArg)) {
+                        if (isset($fetchCtorArgs)) {
+                            $result = $sth->fetchAll($fetchMode, $fetchArg, $fetchCtorArgs);
+                        } else {
+                            $result = $sth->fetchAll($fetchMode, $fetchArg);
+                        }
+                    } else {
+                        $result = $sth->fetchAll($fetchMode);
+                    }
+                } else {
+                    $result = $sth->fetchAll();
+                }
+                $this->cacheSetStatement($statement, $args, $fetchMode, $result, $canCacheRow);
             }
 
             $sth->closeCursor();
         }
 
-        if ($needFetch)
-        {
+        if ($needFetch) {
             $this->rowCount = empty($result) ? 0 : count($result);
-        }
-        else
-        {
+        } else {
             $this->cacheClear();
         }
 
         $this->lastQuery = $statement;
-        $this->last = $this;
+        $this->params->last = $this;
 
         return $result;
     }
 
-
-
-    private function cacheKeyStatement($statement, $args, $fetch_style)
+    protected function cacheKeyStatement($statement, $args, $fetchMode)
     {
-        return 'st/' . md5($statement . '-args-' . implode('-', $args) . '-fs-' . $fetch_style);
+        return 'st/' . md5($statement . '-args-' . implode('-', $args) . '-fetch-' . $fetchMode);
     }
 
-
-
-    private function cacheKeyRow($id, $fetch_style)
+    protected function cacheKeyRow($id, $fetchMode)
     {
-        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->fields . '-fs-' . $fetch_style);
+        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->fields . '-fetch-' . $fetchMode);
     }
 
-
-
-    private function cacheSetStatement($statement, $args, $fetch_style, $result, $canCacheRow)
+    protected function cacheSetStatement($statement, $args, $fetchMode, $result, $canCacheRow)
     {
-        if (isset($this->cache))
-        {
-            $this->cache->set($this->cacheKeyStatement($statement, $args, $fetch_style), $result);
+        if (isset($this->cache)) {
+            $this->cache->set($this->cacheKeyStatement($statement, $args, $fetchMode), $result);
 
             if (
                 $canCacheRow
@@ -1037,79 +961,58 @@ class APDOStatement
                 && empty($this->groupby)
                 && !is_array($this->pkey) # references can't use complex keys
             ) {
-                $this->cacheSetRow($result, $fetch_style);
+                $this->cacheSetRow($result, $fetchMode);
             }
         }
     }
 
-
-
-    private function cacheSetRow($result, $fetch_style)
+    protected function cacheSetRow($result, $fetchMode)
     {
-        if (isset($result[$this->pkey]))
-        {
-            $this->cache->set($this->cacheKeyRow($result[$this->pkey], $fetch_style), $result);
-        }
-        else
-        {
-            foreach ($result as $row)
-            {
-                if (isset($row[$this->pkey]))
-                {
-                    $this->cache->set($this->cacheKeyRow($row[$this->pkey], $fetch_style), $row);
+        if (isset($result[$this->pkey])) {
+            $this->cache->set($this->cacheKeyRow($result[$this->pkey], $fetchMode), $result);
+        } else {
+            foreach ($result as $row) {
+                if (isset($row[$this->pkey])) {
+                    $this->cache->set($this->cacheKeyRow($row[$this->pkey], $fetchMode), $row);
                 }
             }
         }
     }
 
-
-
-    private function cacheGetStatement($statement, $args, $fetch_style)
+    protected function cacheGetStatement($statement, $args, $fetchMode)
     {
         return isset($this->cache)
-            ? $this->cache->get($this->cacheKeyStatement($statement, $args, $fetch_style))
+            ? $this->cache->get($this->cacheKeyStatement($statement, $args, $fetchMode))
             : null;
     }
 
-
-
-    private function cacheGetRow($id)
+    protected function cacheGetRow($id)
     {
         return isset($this->cache)
             ? $this->cache->get($this->cacheKeyRow($id))
             : null;
     }
 
-
-
     /**
      * Clears cache of the statement.
      */
-    function cacheClear()
+    public function cacheClear()
     {
-        if (isset($this->cache))
-        {
+        if (isset($this->cache)) {
             $this->cache->clear();
         }
     }
 
-
-
-    private function referrers_checkCachedRows($key, &$item, &$index, &$cached, &$keys)
+    protected function referrers_checkCachedRows($key, &$item, &$index, &$cached, &$keys)
     {
-        $k = $item[$key];
-        if (isset($k))
-        {
+        $k = $item->{$key};
+        if (isset($k)) {
             $index[$k] [] = & $item;
-            if (empty($cached[$k]) && empty($keys[$k]))
-            {
+            if (empty($cached[$k]) && empty($keys[$k])) {
                 $cache = $this->cacheGetRow($k);
-                if (isset($cache))
-                {
+                if (isset($cache)) {
                     $cached[$k] = $cache;
-                }
-                else
-                {
+                } else {
                     $keys[$k] = $k;
                 }
             }
@@ -1174,81 +1077,62 @@ class APDOStatement
      * @param string        $key            Key name, that used to extract values for condition.
      *                                      By default is equal to $reference.
      * @param string        $pkey           Sets primary key to the statement. Will be used in condition.
-     * @return array                        Result.
+     * @return \static                      Current statement.
      */
-    function referrers(&$data, $referrer, $reference, $key = null, $pkey = null)
+    public function referrers(&$data, $referrer, $reference, $key = null, $pkey = null)
     {
-        if (empty($data))
-        {
+        if (empty($data)) {
             return $this->nothing();
         }
-        if (empty($key))
-        {
+        if (empty($key)) {
             $key = $reference;
         }
-        if (empty($pkey))
-        {
+        if (empty($pkey)) {
             $pkey = $this->pkey;
         }
 
         $index = [];
         $cached = [];
         $keys = [];
-        if (is_int(key($data)))
-        {
-            foreach ($data as &$item)
-            {
+        if (is_int(key($data))) {
+            foreach ($data as &$item) {
                 $this->referrers_checkCachedRows($key, $item, $index, $cached, $keys);
             }
             unset($item);
-        }
-        else
-        {
+        } else {
             $this->referrers_checkCachedRows($key, $data, $index, $cached, $keys);
         }
-        if (empty($keys))
-        {
+        if (empty($keys)) {
             $this->nothing();
-        }
-        else
-        {
+        } else {
             $this->key($keys);
         }
 
         return $this
-            ->handler(function ($result) use ($index, $cached, $referrer, $reference, $pkey)
-            {
+            ->handler(function ($result) use ($index, $cached, $referrer, $reference, $pkey) {
                 $r = [];
-
-                if (isset($cached))
-                {
-                    foreach ($cached as &$row)
-                    {
+                if (isset($cached)) {
+                    foreach ($cached as &$row) {
                         $r [] = & $row;
-                        foreach ($index[$row[$pkey]] as &$item)
-                        {
-                            $item[$reference] = & $row;
-                            $row[$referrer] [] = & $item;
+                        foreach ($index[$row->{$pkey}] as &$item) {
+                            $item->{$reference} = & $row;
+                            $row->{$referrer} [] = & $item;
                         }
                         unset($item);
                     }
                     unset($row);
                 }
-                if (isset($result))
-                {
-                    foreach ($result as &$row)
-                    {
+                if (isset($result)) {
+                    foreach ($result as &$row) {
                         $r [] = & $row;
-                        foreach ($index[$row[$pkey]] as &$item)
-                        {
-                            $item[$reference] = & $row;
-                            $row[$referrer] [] = & $item;
+                        foreach ($index[$row->{$pkey}] as &$item) {
+                            $item->{$reference} = & $row;
+                            $row->{$referrer} [] = & $item;
                         }
                         unset($item);
                     }
                     unset($row);
                 }
-
                 return $r;
             });
     }
@@ -1308,55 +1192,45 @@ class APDOStatement
      * @param string        $key            Key name, that used in condition.
      *                                      By default is equal to $reference.
      * @param string        $pkey           Primary key, that used to extract values for condition.
-     * @return array                        Result.
+     * @return \static                      Current statement.
      */
-    function references(&$data, $referrer, $reference, $key = null, $pkey = null)
+    public function references(&$data, $referrer, $reference, $key = null, $pkey = null)
     {
-        unset($data[$referrer]);
-
-        if (empty($data))
-        {
+        if (empty($data)) {
             return $this->nothing();
         }
-        if (empty($key))
-        {
+        if (empty($key)) {
             $key = $reference;
         }
-        if (empty($pkey))
-        {
+        if (empty($pkey)) {
             $pkey = $this->pkey;
         }
 
         $index = [];
-        if (is_int(key($data)))
-        {
-            foreach ($data as &$item)
-            {
-                $index[$item[$pkey]] = & $item;
+        if (is_int(key($data))) {
+            foreach ($data as &$item) {
+                $item->{$referrer} = [];
+                $index[$item->{$pkey}] = & $item;
             }
             unset($item);
-        }
-        else
-        {
-            $index[$data[$pkey]] = & $data;
+        } else {
+            $data->{$referrer} = [];
+            $index[$data->{$pkey}] = & $data;
         }
 
         return $this
             ->key(array_keys($index), $key)
-            ->handler(function ($result) use ($index, $referrer, $reference, $key)
-            {
-                if (empty($result))
-                {
+            ->handler(function ($result) use ($index, $referrer, $reference, $key) {
+                if (empty($result)) {
                     return [];
                 }
 
                 $r = [];
-                foreach ($result as &$row)
-                {
+                foreach ($result as &$row) {
                     $r [] = & $row;
-                    $item = & $index[$row[$key]];
-                    $item[$referrer] [] = & $row;
-                    $row[$reference] = & $item;
+                    $item = & $index[$row->{$key}];
+                    $item->{$referrer} [] = & $row;
+                    $row->{$reference} = & $item;
                 }
                 unset($item);
                 unset($row);

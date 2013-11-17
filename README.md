@@ -42,7 +42,7 @@ With APDO it is a bit simpler:
 ```php
 $fruits = $apdo
     ->statement('SELECT * FROM fruit LIMIT 10')
-    ->all();
+    ->fetchAll();
 ```
 
 But... Why not go on?
@@ -51,7 +51,7 @@ But... Why not go on?
 $fruits = $apdo
     ->from('fruit')
     ->limit(10)
-    ->all();
+    ->fetchAll();
 ```
 
 Thats better.
@@ -70,17 +70,25 @@ Do you know which fruit you need?
 $i_want_this_one = $apdo
     ->from('fruit')
     ->key(123)
-    ->one();
+    ->fetchOne();
 ```
 
 Do you need only fruit color?
 
 ```php
-list($color) = $apdo
+$color = $apdo
     ->from('fruit')
-    ->fields('color')
     ->key(123)
-    ->oneL();
+    ->fetchCell('color');
+```
+
+Do you need only fruit color and name?
+
+```php
+list($color, $name) = $apdo
+    ->from('fruit')
+    ->key(123)
+    ->fetchRow(['color', 'name']);
 ```
 
 Do you need ID-indexed array of red fruit names?
@@ -88,9 +96,8 @@ Do you need ID-indexed array of red fruit names?
 ```php
 $red_fruits_id_name = $apdo
     ->from('fruit')
-    ->fields('id, name') # or ->fields(['id', 'name'])
     ->key('red', 'color')
-    ->allK();
+    ->fetchPairs('name'/*, 'id'*/);
 ```
 
 I don't like cherry, remove it.

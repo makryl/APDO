@@ -11,9 +11,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-namespace aeqdev\apdo;
-
-
+namespace aeqdev\APDO;
 
 /**
  * Memcache for APDO.
@@ -29,31 +27,23 @@ class Memcache extends \Memcache implements ICache
     protected $version;
     protected $versionKey;
 
-
-
-    function get($name)
+    public function get($name)
     {
         $r = parent::get($this->prefix($name));
         return $r === false ? null : $r;
     }
 
-
-
-    function set($name, $value, $compress = null, $ttl = null)
+    public function set($name, $value, $compress = null, $ttl = null)
     {
         return parent::set($this->prefix($name), $value, $compress, $ttl);
     }
 
-
-
-    function clear()
+    public function clear()
     {
         $this->prefixInit();
         $this->version = parent::increment($this->versionKey);
         $this->prefix = $this->prefixInit . '/' . $this->version . '/';
     }
-
-
 
     /**
      * Sets prefix for key names.
@@ -61,13 +51,11 @@ class Memcache extends \Memcache implements ICache
      *
      * @param string $prefix
      */
-    function setPrefix($prefix = null)
+    public function setPrefix($prefix = null)
     {
         $this->prefixInit = $prefix;
         $this->prefix = null;
     }
-
-
 
     private function prefix($name)
     {
@@ -75,19 +63,14 @@ class Memcache extends \Memcache implements ICache
         return $this->prefix . $name;
     }
 
-
-
     private function prefixInit()
     {
-        if (!isset($this->prefix))
-        {
+        if (!isset($this->prefix)) {
             $this->version = time();
             $this->versionKey = $this->prefixInit . '/version';
-            if (!parent::add($this->versionKey, $this->version))
-            {
+            if (!parent::add($this->versionKey, $this->version)) {
                 $this->version = parent::get($this->versionKey);
             }
-
             $this->prefix = $this->prefixInit . '/' . $this->version . '/';
         }
     }
