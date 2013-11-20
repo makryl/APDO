@@ -817,16 +817,20 @@ class APDOStatement
      * Array of values also can be array of arrays for massive insertion.
      * Returns last inserted id.
      *
-     * @param array         $values         Array of values or array of arrays of values to insert.
+     * @param array|object  $values         Array of values or array of arrays of values to insert.
      * @return int                          Last inserted id.
      */
-    public function insert(array $values)
+    public function insert($values)
     {
-        if (!isset($values[0])) {
+        if (is_object($values) || !isset($values[0])) {
             $values = [$values];
         }
 
-        $names = array_keys($values[0]);
+        $names = [];
+        foreach ($values[0] as $n => $a) {
+            $names []= $n;
+        }
+
         $this->args = [];
         foreach ($values as $v) {
             foreach ($v as $a) {
@@ -851,20 +855,27 @@ class APDOStatement
      * Executes UPDATE query using statement's table name, conditions,
      * and array of values with keys as field names.
      *
-     * @param array         $values         Array of values to update.
+     * @param array|object  $values         Array of values to update.
      * @return bool                         True on success or false on failure.
      */
-    public function update(array $values)
+    public function update($values)
     {
         if (empty($values)) {
             return true;
         }
 
-        $this->args = array_merge(array_values($values), $this->args);
+        $set = '';
+        $args = [];
+        foreach ($values as $n => $a) {
+            $set .= $n . "=?,\n    ";
+            $args []= $a;
+        }
+        $set = substr($set, 0, -2);
+        $this->args = array_merge($args, $this->args);
 
         return $this->query(
-            'UPDATE ' . $this->table . "\nSET\n    "
-                . implode("=?,\n    ", array_keys($values)) . '=?'
+            'UPDATE ' . $this->table
+            . "\nSET\n    ". $set
                 . (!empty($this->where) ? "\nWHERE " . $this->where : ''),
             $this->args
         );
@@ -1192,9 +1203,10 @@ class APDOStatement
      * @param string        $key            Key name, that used in condition.
      *                                      By default is equal to $reference.
      * @param string        $pkey           Primary key, that used to extract values for condition.
+     * @param bool          $unique         Set true for one-to-one references.
      * @return \static                      Current statement.
      */
-    public function references(&$data, $referrer, $reference, $key = null, $pkey = null)
+    public function references(&$data, $referrer, $reference, $key = null, $pkey = null, $unique = false)
     {
         if (empty($data)) {
             return $this->nothing();
@@ -1220,7 +1232,7 @@ class APDOStatement
 
         return $this
             ->key(array_keys($index), $key)
-            ->handler(function ($result) use ($index, $referrer, $reference, $key) {
+            ->handler(function ($result) use ($index, $referrer, $reference, $key, $unique) {
                 if (empty($result)) {
                     return [];
                 }
@@ -1229,7 +1241,11 @@ class APDOStatement
                 foreach ($result as &$row) {
                     $r [] = & $row;
                     $item = & $index[$row->{$key}];
-                    $item->{$referrer} [] = & $row;
+                    if ($unique) {
+                        $item->{$referrer} = & $row;
+                    } else {
+                        $item->{$referrer} [] = & $row;
+                    }
                     $row->{$reference} = & $item;
                 }
                 unset($item);
@@ -1237,6 +1253,11 @@ class APDOStatement
 
                 return $r;
             });
+    }
+
+    public function referencesUnique(&$data, $referrer, $reference, $key = null, $pkey = null)
+    {
+        return $this->references($data, $referrer, $reference, $key, $pkey, true);
     }
 
 }

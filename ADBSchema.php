@@ -18,271 +18,28 @@ namespace aeqdev;
  */
 class ADBSchema extends APDO
 {
-
-    public $catalog;
-    public $name;
+    public $namespace = __NAMESPACE__;
     public $prefix;
-    public $overrideMethodDocs = true;
 
-    public function save($file, $class, $namespace = '')
+    protected $tables = [];
+
+    public function __get($name)
     {
-        $schema = $this->read();
-
-        $f = fopen($file, 'w');
-        fwrite($f, "<?php\n\n");
-
-        if (!empty($namespace)) {
-            fwrite($f, "namespace $namespace;\n\n");
-            $namespace = '\\' . $namespace;
+        if (!isset($this->tables[$name])) {
+            $classTable = $this->{'class_' . $name};
+            $this->tables[$name] = new $classTable($this);
         }
-
-        $this->renderSchema($f, $schema, $class, $namespace);
-
-        foreach ($schema as $table => $tdata) {
-            $this->renderTable($f, $table, $tdata, $class, $namespace);
-            $this->renderRow($f, $table, $tdata, $namespace);
-        }
-
-        fclose($f);
+        return $this->tables[$name];
     }
 
-    protected function renderSchema($f, $schema, $class, $namespace)
+    public function __call($name, $args)
     {
-        fwrite($f, "class $class extends \\aeqdev\\ADBSchema\n{\n");
-        if (!empty($this->catalog)) {
-            fwrite($f, "    public \$catalog = '{$this->catalog}';\n");
-        }
-        if (!empty($this->name)) {
-            fwrite($f, "    public \$name = '{$this->name}';\n");
-        }
-        if (!empty($this->prefix)) {
-            fwrite($f, "    public \$prefix = '{$this->prefix}';\n");
-        }
-        if (!empty($schema)) {
-            fwrite($f, "\n");
-            foreach ($schema as $table => $tdata) {
-                fwrite($f, "    /** @return $namespace\\Table_{$table} */\n");
-                fwrite($f, "    public function {$table}() { return new Table_{$table}(\$this->parameters); }\n");
-            }
-        }
-        fwrite($f, "}\n\n");
+        return $this->{$name}->statement();
     }
 
-    protected function renderTable($f, $table, $tdata, $class, $namespace)
+    public function statement($statement = null, $args = null)
     {
-        fwrite($f, "/**\n");
-        fwrite($f, " * @property $namespace\\$class \$schema\n");
-        fwrite($f, " *\n");
-        fwrite($f, " * @method $namespace\\Row_{$table}[] fetchAll\n");
-        fwrite($f, " * @method $namespace\\Row_{$table} fetchOne\n");
-        fwrite($f, " *\n");
-        if ($this->overrideMethodDocs) {
-            foreach ([
-                'log',
-                'cache',
-                'nothing',
-                'table',
-                'pkey',
-                'fetchMode',
-                'join',
-                'leftJoin',
-                'where',
-                'orWhere',
-                'key',
-                'orKey',
-                'groupBy',
-                'having',
-                'orderBy',
-                'addOrderBy',
-                'limit',
-                'offset',
-                'fields',
-                'handler',
-                'referrers',
-                'references',
-            ] as $method) {
-                fwrite($f, " * @method $namespace\\Table_{$table} $method\n");
-            }
-        }
-        fwrite($f, " */\n");
-        fwrite($f, "class Table_{$table} extends \\aeqdev\\ADBSchemaTable\n");
-        fwrite($f, "{\n");
-        fwrite($f, "    public \$name = '$table';\n");
-        if (!empty($tdata['pkey'])) {
-            if (count($tdata['pkey']) == 1) {
-                fwrite($f, "    public \$pkey = '{$tdata['pkey'][0]}';\n");
-            } else {
-                fwrite($f, "    public \$pkey = ['" . implode("', '", $tdata['pkey']) . "'];\n");
-            }
-        }
-        if (!empty($tdata['fkey'])) {
-            fwrite($f, "    public \$fkey = [\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($f, "        '$rtable' => '$fkey',\n");
-            }
-            fwrite($f, "    ];\n");
-        }
-        fwrite($f, "}\n\n");
-    }
-
-    protected function renderRow($f, $table, $tdata, $namespace)
-    {
-        fwrite($f, "/**\n");
-        fwrite($f, " * @property $namespace\\Table_{$table} \$table\n");
-        fwrite($f, " */\n");
-        fwrite($f, "class Row_{$table} extends \\aeqdev\\ADBSchemaRow\n");
-        fwrite($f, "{\n");
-        if (!empty($tdata['cols'])) {
-            foreach ($tdata['cols'] as $col) {
-                fwrite($f, "    public \${$col};\n");
-            }
-        }
-        if (!empty($tdata['fkey'])) {
-            fwrite($f, "\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($f, "    /** @var $namespace\\Row_{$rtable} */\n");
-                fwrite($f, "    public \${$rtable};\n");
-                fwrite($f, "    /** @return $namespace\\Row_{$rtable} */\n");
-                fwrite($f, "    public function {$rtable}() { return \$this->table->schema->{$rtable}()->referrers(\$this)->fetchOne(); }\n");
-            }
-        }
-        if (!empty($tdata['refs'])) {
-            fwrite($f, "\n");
-            foreach ($tdata['refs'] as $rtable) {
-                fwrite($f, "    /** @var $namespace\\Row_{$rtable}[] */\n");
-                fwrite($f, "    public \${$rtable} = [];\n");
-                fwrite($f, "    /** @return $namespace\\Row_{$rtable}[] */\n");
-                fwrite($f, "    public function {$rtable}() { return \$this->table->schema->{$rtable}()->references(\$this)->fetchAll(); }\n");
-            }
-        }
-        fwrite($f, "}\n\n");
-    }
-
-    protected function read()
-    {
-        $r = $this
-            ->statement($this->readQuery())
-            ->fetchAll();
-
-        $schema = [];
-        $prefixLength = strlen($this->prefix);
-        foreach ($r as $row) {
-            $tname = substr($row->t, $prefixLength);
-            $rname = substr($row->r, $prefixLength);
-
-            $table =& $schema[$tname];
-            $table['cols'][$row->col] = $row->col;
-            if ($row->con == 'PRIMARY KEY') {
-                $table['pkey'] []= $row->col;
-            } else if ($row->con == 'FOREIGN KEY') {
-                $table['fkey'][$rname] = $row->col;
-                $schema[$rname]['refs'][$tname] = $tname;
-            }
-        }
-
-        return $schema;
-    }
-
-    protected function readQuery()
-    {
-        $condition = '1=1';
-
-        if (!empty($this->catalog)) {
-            $condition .= " AND c.table_catalog = '{$this->catalog}'";
-        }
-        if (!empty($this->name)) {
-            $condition .= " AND c.table_schema = '{$this->name}'";
-        }
-        if (!empty($this->prefix)) {
-            $condition .= " AND c.table_name LIKE '{$this->prefix}%'";
-        }
-
-        switch (strtolower(substr($this->dsn, 0, strpos($this->dsn, ':')))) {
-            case 'mysql':
-                return "
-SELECT
-    c.table_catalog             as cat,
-    c.table_schema              as s,
-    c.table_name                as t,
-    c.column_name               as col,
-    tc.constraint_type          as con,
-    rc.referenced_table_name    as r
-
-FROM information_schema.columns c
-
-LEFT JOIN information_schema.key_column_usage kcu
-    ON  kcu.table_catalog       = c.table_catalog
-    AND kcu.table_schema        = c.table_schema
-    AND kcu.table_name          = c.table_name
-    AND kcu.column_name         = c.column_name
-
-LEFT JOIN information_schema.table_constraints tc
-    ON  tc.constraint_catalog   = kcu.table_catalog
-    AND tc.table_schema         = kcu.table_schema
-    AND tc.table_name           = kcu.table_name
-    AND tc.constraint_name      = kcu.constraint_name
-    AND tc.constraint_type      IN ('PRIMARY KEY', 'FOREIGN KEY')
-
-LEFT JOIN information_schema.referential_constraints rc
-    ON  rc.constraint_catalog   = kcu.constraint_catalog
-    AND rc.constraint_schema    = kcu.constraint_schema
-    AND rc.constraint_name      = kcu.constraint_name
-
-WHERE $condition
-
-ORDER BY
-    c.table_catalog,
-    c.table_schema,
-    c.table_name,
-    kcu.ordinal_position,
-    c.ordinal_position
-";
-
-            default:
-                return "
-SELECT
-    c.table_catalog             as cat,
-    c.table_schema              as s,
-    c.table_name                as t,
-    c.column_name               as col,
-    tc.constraint_type          as con,
-    kcu_fkey.table_name         as r
-
-FROM information_schema.columns c
-
-LEFT JOIN information_schema.key_column_usage kcu
-    ON  kcu.table_catalog       = c.table_catalog
-    AND kcu.table_schema        = c.table_schema
-    AND kcu.table_name          = c.table_name
-    AND kcu.column_name         = c.column_name
-
-LEFT JOIN information_schema.table_constraints tc
-    ON  tc.constraint_catalog   = kcu.table_catalog
-    AND tc.table_schema         = kcu.table_schema
-    AND tc.table_name           = kcu.table_name
-    AND tc.constraint_name      = kcu.constraint_name
-    AND tc.constraint_type      IN ('PRIMARY KEY', 'FOREIGN KEY')
-
-LEFT JOIN information_schema.referential_constraints rc
-    ON  rc.constraint_catalog   = kcu.constraint_catalog
-    AND rc.constraint_schema    = kcu.constraint_schema
-    AND rc.constraint_name      = kcu.constraint_name
-
-LEFT JOIN information_schema.key_column_usage kcu_fkey
-    ON  rc.unique_constraint_catalog = kcu_fkey.constraint_catalog
-    AND rc.unique_constraint_schema  = kcu_fkey.constraint_schema
-    AND rc.unique_constraint_name    = kcu_fkey.constraint_name
-
-WHERE $condition
-
-ORDER BY
-    c.table_catalog,
-    c.table_schema,
-    c.table_name,
-    kcu.ordinal_position,
-    c.ordinal_position
-";
-        }
+        return new ADBSchemaStatement($this->parameters, $statement, $args);
     }
 
 }
@@ -290,7 +47,7 @@ ORDER BY
 /**
  *
  */
-class ADBSchemaTable extends APDOStatement
+class ADBSchemaTable
 {
 
     /**
@@ -300,22 +57,64 @@ class ADBSchemaTable extends APDOStatement
 
     public $name;
     public $pkey;
+    public $ukey;
     public $fkey;
 
-    public function __construct(APDOParameters $params, $statement = null, $args = null)
+    protected $class_row;
+
+    public function __construct(ADBSchema $schema)
     {
-        parent::__construct($params, $statement, $args);
+        $this->schema = $schema;
+    }
 
-        $this->schema = $params->apdo;
-
-        $this
-            ->table($this->schema->prefix . $this->name)
-            ->pkey($this->pkey)
+    public function statement() {
+        return $this->schema->statement()
+            ->schemaTable($this)
             ->fetchMode(
                 \PDO::FETCH_CLASS,
-                str_replace('\\Table_', '\\Row_', get_class($this)),
+                $this->class_row,
                 [$this]
             );
+    }
+
+    public function create()
+    {
+        $classRow = $this->class_row;
+        return new $classRow($this, true);
+    }
+
+    public function get($id)
+    {
+        return $this->statement()
+            ->key($id)
+            ->fetchOne();
+    }
+
+    public function references(self $table)
+    {
+        return isset($this->fkey[$table->name]);
+    }
+
+    public function referencesUnique(self $table)
+    {
+        return isset($this->ukey[$this->fkey[$table->name]]);
+    }
+
+}
+
+/**
+ *
+ */
+class ADBSchemaStatement extends APDOStatement
+{
+
+    protected $schemaTable;
+
+    public function schemaTable(ADBSchemaTable $table)
+    {
+        $this->schemaTable = $table;
+        return $this->table($table->schema->prefix . $table->name)
+            ->pkey($table->pkey);
     }
 
     public function referrers(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
@@ -324,38 +123,48 @@ class ADBSchemaTable extends APDOStatement
             return $this->nothing();
         }
 
-        /* @var $itemTable \aeqdev\ADBSchemaTable */
-        $itemTable = is_array($data)
-            ? reset($data)->table
-            : $data->table;
+        $itemTable = $this->getDataTable($data);
 
         return parent::referrers(
             $data,
             $referrer   ? : $itemTable->name,
-            $reference  ? : $this->name,
-            $key        ? : $itemTable->fkey[$this->name],
+            $reference  ? : $this->schemaTable->name,
+            $key        ? : $itemTable->fkey[$this->schemaTable->name],
             $pkey       ? : $itemTable->pkey
         );
     }
 
-    public function references(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
+    public function references(&$data, $referrer = null, $reference = null, $key = null, $pkey = null, $unique = false)
     {
         if (empty($data)) {
             return $this->nothing();
         }
 
-        /* @var $itemTable \aeqdev\ADBSchemaTable */
-        $itemTable = is_array($data)
-            ? reset($data)->table
-            : $data->table;
+        $itemTable = $this->getDataTable($data);
 
         return parent::references(
             $data,
-            $referrer   ? : $this->name,
+            $referrer   ? : $this->schemaTable->name,
             $reference  ? : $itemTable->name,
-            $key        ? : $this->fkey[$itemTable->name],
-            $pkey       ? : $itemTable->pkey
+            $key        ? : $this->schemaTable->fkey[$itemTable->name],
+            $pkey       ? : $itemTable->pkey,
+            $unique
         );
+    }
+
+    public function referencesUnique(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
+    {
+        return $this->references($data, $referrer, $reference, $key, $pkey, true);
+    }
+
+    /**
+     * @return \aeqdev\ADBSchemaTable
+     */
+    protected function getDataTable(&$data)
+    {
+        return is_array($data)
+            ? reset($data)->table()
+            : $data->table();
     }
 
 }
@@ -363,17 +172,63 @@ class ADBSchemaTable extends APDOStatement
 /**
  *
  */
-class ADBSchemaRow
+abstract class ADBSchemaRow
 {
 
-    /**
-     * @var \aeqdev\ADBSchemaTable
-     */
-    public $table;
+    protected $table;
+    protected $new;
 
-    function __construct(ADBSchemaTable $table)
+    public function table()
+    {
+        return $this->table;
+    }
+
+    public function __construct(ADBSchemaTable $table, $new = false)
     {
         $this->table = $table;
+        $this->new = $new;
+    }
+
+    public function __call($name, $args)
+    {
+        /* @var $refTable \aeqdev\ADBSchemaTable */
+        $refTable = $this->table->schema->{$name};
+        if ($this->table->references($refTable)) {
+            return $refTable->statement()
+                ->referrers($this)
+                ->fetchOne();
+        } else if ($refTable->referencesUnique($this->table)) {
+            return $refTable->statement()
+                ->referencesUnique($this)
+                ->fetchOne();
+        } else if ($refTable->references($this->table)) {
+            return $refTable->statement()
+                ->references($this)
+                ->fetchAll();
+        }
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        if ($this->new) {
+            $id = $this->table->statement()
+                ->insert($this);
+            if (isset($id)) {
+                $this->{$this->table->pkey} = $id;
+            }
+            $this->new = false;
+        } else {
+            $this->table->statement()
+                ->key($this->{$this->table->pkey})
+                ->update($this);
+        }
+    }
+
+    public function validate()
+    {
+
     }
 
 }
