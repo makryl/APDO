@@ -18,7 +18,7 @@ namespace aeqdev;
  */
 class ADBSchema extends APDO
 {
-    public $namespace = __NAMESPACE__;
+    
     public $prefix;
 
     protected $tables = [];
