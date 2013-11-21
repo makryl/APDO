@@ -18,7 +18,7 @@ namespace aeqdev;
  */
 class ADBSchema extends APDO
 {
-    
+
     public $prefix;
 
     protected $tables = [];
@@ -90,16 +90,6 @@ class ADBSchemaTable
             ->fetchOne();
     }
 
-    public function references(self $table)
-    {
-        return isset($this->fkey[$table->name]);
-    }
-
-    public function referencesUnique(self $table)
-    {
-        return isset($this->ukey[$this->fkey[$table->name]]);
-    }
-
 }
 
 /**
@@ -117,7 +107,7 @@ class ADBSchemaStatement extends APDOStatement
             ->pkey($table->pkey);
     }
 
-    public function referrers(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
+    public function refs(&$data)
     {
         if (empty($data)) {
             return $this->nothing();
@@ -125,36 +115,25 @@ class ADBSchemaStatement extends APDOStatement
 
         $itemTable = $this->getDataTable($data);
 
-        return parent::referrers(
-            $data,
-            $referrer   ? : $itemTable->name,
-            $reference  ? : $this->schemaTable->name,
-            $key        ? : $itemTable->fkey[$this->schemaTable->name],
-            $pkey       ? : $itemTable->pkey
-        );
-    }
-
-    public function references(&$data, $referrer = null, $reference = null, $key = null, $pkey = null, $unique = false)
-    {
-        if (empty($data)) {
-            return $this->nothing();
+        if (isset($itemTable->fkey[$this->schemaTable->name])) {
+            return $this->referrers(
+                $data,
+                $itemTable->name,
+                $this->schemaTable->name,
+                $itemTable->fkey[$this->schemaTable->name],
+                $itemTable->pkey,
+                isset($itemTable->ukey[$itemTable->fkey[$this->schemaTable->name]])
+            );
+        } else if (isset($this->schemaTable->fkey[$itemTable->name])) {
+            return $this->references(
+                $data,
+                $this->schemaTable->name,
+                $itemTable->name,
+                $this->schemaTable->fkey[$itemTable->name],
+                $itemTable->pkey,
+                isset($this->schemaTable->ukey[$this->schemaTable->fkey[$itemTable->name]])
+            );
         }
-
-        $itemTable = $this->getDataTable($data);
-
-        return parent::references(
-            $data,
-            $referrer   ? : $this->schemaTable->name,
-            $reference  ? : $itemTable->name,
-            $key        ? : $this->schemaTable->fkey[$itemTable->name],
-            $pkey       ? : $itemTable->pkey,
-            $unique
-        );
-    }
-
-    public function referencesUnique(&$data, $referrer = null, $reference = null, $key = null, $pkey = null)
-    {
-        return $this->references($data, $referrer, $reference, $key, $pkey, true);
     }
 
     /**
@@ -191,21 +170,15 @@ abstract class ADBSchemaRow
 
     public function __call($name, $args)
     {
+        /* @var $statement \aeqdev\ADBSchemaStatement */
+        $statement = $this->table->schema->{$name}()->refs($this);
         /* @var $refTable \aeqdev\ADBSchemaTable */
         $refTable = $this->table->schema->{$name};
-        if ($this->table->references($refTable)) {
-            return $refTable->statement()
-                ->referrers($this)
-                ->fetchOne();
-        } else if ($refTable->referencesUnique($this->table)) {
-            return $refTable->statement()
-                ->referencesUnique($this)
-                ->fetchOne();
-        } else if ($refTable->references($this->table)) {
-            return $refTable->statement()
-                ->references($this)
-                ->fetchAll();
-        }
+
+        return isset($refTable->fkey[$this->table->name])
+            && !isset($refTable->ukey[$refTable->fkey[$this->table->name]])
+            ? $statement->fetchAll()
+            : $statement->fetchOne();
     }
 
     public function save()

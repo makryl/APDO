@@ -1088,9 +1088,10 @@ class APDOStatement
      * @param string        $key            Key name, that used to extract values for condition.
      *                                      By default is equal to $reference.
      * @param string        $pkey           Sets primary key to the statement. Will be used in condition.
+     * @param bool          $unique         Set true for one-to-one references.
      * @return \static                      Current statement.
      */
-    public function referrers(&$data, $referrer, $reference, $key = null, $pkey = null)
+    public function referrers(&$data, $referrer, $reference, $key = null, $pkey = null, $unique = false)
     {
         if (empty($data)) {
             return $this->nothing();
@@ -1120,27 +1121,49 @@ class APDOStatement
         }
 
         return $this
-            ->handler(function ($result) use ($index, $cached, $referrer, $reference, $pkey) {
+            ->handler(function ($result) use ($index, $cached, $referrer, $reference, $pkey, $unique) {
                 $r = [];
                 if (isset($cached)) {
-                    foreach ($cached as &$row) {
-                        $r [] = & $row;
-                        foreach ($index[$row->{$pkey}] as &$item) {
-                            $item->{$reference} = & $row;
-                            $row->{$referrer} [] = & $item;
+                    if ($unique) {
+                        foreach ($cached as &$row) {
+                            $r [] = & $row;
+                            foreach ($index[$row->{$pkey}] as &$item) {
+                                $item->{$reference} = & $row;
+                                $row->{$referrer} = & $item;
+                            }
+                            unset($item);
                         }
-                        unset($item);
+                    } else {
+                        foreach ($cached as &$row) {
+                            $r [] = & $row;
+                            foreach ($index[$row->{$pkey}] as &$item) {
+                                $item->{$reference} = & $row;
+                                $row->{$referrer} [] = & $item;
+                            }
+                            unset($item);
+                        }
                     }
                     unset($row);
                 }
                 if (isset($result)) {
-                    foreach ($result as &$row) {
-                        $r [] = & $row;
-                        foreach ($index[$row->{$pkey}] as &$item) {
-                            $item->{$reference} = & $row;
-                            $row->{$referrer} [] = & $item;
+                    if ($unique) {
+                        foreach ($result as &$row) {
+                            $r [] = & $row;
+                            foreach ($index[$row->{$pkey}] as &$item) {
+                                $item->{$reference} = & $row;
+                                $row->{$referrer} = & $item;
+                            }
+                            unset($item);
                         }
-                        unset($item);
+                    } else {
+                        foreach ($result as &$row) {
+                            $r [] = & $row;
+                            foreach ($index[$row->{$pkey}] as &$item) {
+                                $item->{$reference} = & $row;
+                                $row->{$referrer} [] = & $item;
+                            }
+                            unset($item);
+                        }
                     }
                     unset($row);
                 }
@@ -1238,21 +1261,32 @@ class APDOStatement
                 }
 
                 $r = [];
-                foreach ($result as &$row) {
-                    $r [] = & $row;
-                    $item = & $index[$row->{$key}];
-                    if ($unique) {
+
+                if ($unique) {
+                    foreach ($result as &$row) {
+                        $r [] = & $row;
+                        $item = & $index[$row->{$key}];
                         $item->{$referrer} = & $row;
-                    } else {
-                        $item->{$referrer} [] = & $row;
+                        $row->{$reference} = & $item;
                     }
-                    $row->{$reference} = & $item;
+                } else {
+                    foreach ($result as &$row) {
+                        $r [] = & $row;
+                        $item = & $index[$row->{$key}];
+                        $item->{$referrer} [] = & $row;
+                        $row->{$reference} = & $item;
+                    }
                 }
                 unset($item);
                 unset($row);
 
                 return $r;
             });
+    }
+
+    public function referrersUnique(&$data, $referrer, $reference, $key = null, $pkey = null)
+    {
+        return $this->referrers($data, $referrer, $reference, $key, $pkey, true);
     }
 
     public function referencesUnique(&$data, $referrer, $reference, $key = null, $pkey = null)
