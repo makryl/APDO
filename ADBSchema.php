@@ -70,11 +70,7 @@ class ADBSchemaTable
     public function statement() {
         return $this->schema->statement()
             ->schemaTable($this)
-            ->fetchMode(
-                \PDO::FETCH_CLASS,
-                $this->class_row,
-                [$this]
-            );
+            ->fetchMode(\PDO::FETCH_CLASS, $this->class_row, [$this]);
     }
 
     public function create()
@@ -113,7 +109,9 @@ class ADBSchemaStatement extends APDOStatement
             return $this->nothing();
         }
 
-        $itemTable = $this->getDataTable($data);
+        $itemTable = is_array($data)
+            ? reset($data)->table()
+            : $data->table();
 
         if (isset($itemTable->fkey[$this->schemaTable->name])) {
             return $this->referrers(
@@ -134,16 +132,6 @@ class ADBSchemaStatement extends APDOStatement
                 isset($this->schemaTable->ukey[$this->schemaTable->fkey[$itemTable->name]])
             );
         }
-    }
-
-    /**
-     * @return \aeqdev\ADBSchemaTable
-     */
-    protected function getDataTable(&$data)
-    {
-        return is_array($data)
-            ? reset($data)->table()
-            : $data->table();
     }
 
 }
