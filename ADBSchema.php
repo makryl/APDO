@@ -79,10 +79,10 @@ class ADBSchemaTable
         return new $classRow($this, true);
     }
 
-    public function get($id)
+    public function get($pkey)
     {
         return $this->statement()
-            ->key($id)
+            ->key($pkey)
             ->fetchOne();
     }
 
@@ -174,16 +174,29 @@ abstract class ADBSchemaRow
         $this->validate();
 
         if ($this->new) {
-            $id = $this->table->statement()
+            $pkey = $this->table->statement()
                 ->insert($this);
-            if (isset($id)) {
-                $this->{$this->table->pkey} = $id;
+            if (isset($pkey)) {
+                $this->{$this->table->pkey} = $pkey;
             }
             $this->new = false;
         } else {
             $this->table->statement()
-                ->key($this->{$this->table->pkey})
+                ->key($this->pkey())
                 ->update($this);
+        }
+    }
+
+    public function pkey()
+    {
+        if (is_array($this->table->pkey)) {
+            $pkey = [];
+            foreach ($this->table->pkey as $field) {
+                $pkey []= $this->{$field};
+            }
+            return $pkey;
+        } else {
+            return $this->{$this->table->pkey};
         }
     }
 
