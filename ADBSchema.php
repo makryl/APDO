@@ -59,6 +59,7 @@ class ADBSchemaTable
     public $pkey;
     public $ukey;
     public $fkey;
+    public $cols;
 
     protected $class_row;
 
@@ -144,6 +145,8 @@ abstract class ADBSchemaRow
 
     protected $table;
     protected $new;
+    protected $cols;
+    protected $refs;
 
     public function table()
     {
@@ -171,11 +174,9 @@ abstract class ADBSchemaRow
 
     public function save()
     {
-        $this->validate();
-
         if ($this->new) {
             $pkey = $this->table->statement()
-                ->insert($this);
+                ->insert($this->values());
             if (isset($pkey)) {
                 $this->{$this->table->pkey} = $pkey;
             }
@@ -183,7 +184,7 @@ abstract class ADBSchemaRow
         } else {
             $this->table->statement()
                 ->key($this->pkey())
-                ->update($this);
+                ->update($this->values());
         }
     }
 
@@ -200,9 +201,106 @@ abstract class ADBSchemaRow
         }
     }
 
-    public function validate()
+    public function values()
     {
+        $this->validValues = [];
+        $exceptions = [];
+        foreach ($this->table->cols as $name) {
+            try {
+                $this->validValues[$name] = $this->table->{'valid_' . $name}($this);
+            } catch (ADBSchemaValidatorSkipException $e) {
+                continue;
+            } catch (\Exception $e) {
+                $exceptions[$name] = $e;
+                break;
+            }
+        }
+        if (!empty($exceptions)) {
+            throw new ADBSchemaValidatorException($exceptions);
+        }
+        return $this->validValues;
+    }
 
+}
+
+class ADBSchemaValidator
+{
+
+    public static function int($value)
+    {
+        return isset($value) && trim($value) !== '' ? (int)$value : null;
+    }
+
+    public static function float($value)
+    {
+        return isset($value) && trim($value) !== '' ? (float)$value : null;
+    }
+
+    public static function bool($value)
+    {
+        return isset($value) && trim($value) !== '' ? (bool)$value : null;
+    }
+
+    public static function string($value)
+    {
+        return trim($value);
+    }
+
+    public static function length($value, $length)
+    {
+        return mb_substr($value, 0, $length);
+    }
+
+    public static function datef($value, $format)
+    {
+        $value = strtotime($value);
+        return $value === false ? null : date($format, $value);
+    }
+
+    public static function time($value)
+    {
+        return self::datef($value, 'c');
+    }
+
+    public static function date($value)
+    {
+        return self::datef($value, 'Y-m-d');
+    }
+
+    public static function emptyskip($value)
+    {
+        if (empty($value)) {
+            throw new ADBSchemaValidatorSkipException();
+        }
+        return $value;
+    }
+
+    public static function required($value, $errorMessage = null)
+    {
+        if (
+            empty($value)
+            && $value !== 0
+            && $value !== 0.
+            && $value !== false
+        ) {
+            throw new \Exception(isset($errorMessage) ? $errorMessage : _('Value required'));
+        }
+        return $value;
+    }
+
+}
+
+class ADBSchemaValidatorSkipException extends \Exception {}
+
+class ADBSchemaValidatorException extends \Exception
+{
+
+    public $exceptions;
+
+    public function __construct($exceptions, $message = null, $code = 0, $previous = null)
+    {
+        parent::__construct($message, $code, $previous);
+        $this->exceptions = $exceptions;
     }
 
 }

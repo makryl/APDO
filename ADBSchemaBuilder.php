@@ -23,10 +23,21 @@ class ADBSchemaBuilder
     public $class;
     public $namespace;
     public $prefix = '';
-    public $overrideMethodDocs = true;
+    public $overrideStatementDocs = true;
     public $schema;
+    public $validatorNotNull = "\\aeqdev\\ADBSchemaValidator::required(%s)";
+    public $validatorLength = '\\aeqdev\\ADBSchemaValidator::length(%s, %s)';
+    public $validatorByType = [
+        'bool'   => '\\aeqdev\\ADBSchemaValidator::bool(%s)',
+        'string' => '\\aeqdev\\ADBSchemaValidator::string(%s)',
+        'text'   => '\\aeqdev\\ADBSchemaValidator::string(%s)',
+        'time'   => '\\aeqdev\\ADBSchemaValidator::time(%s)',
+        'date'   => '\\aeqdev\\ADBSchemaValidator::date(%s)',
+        'int'    => '\\aeqdev\\ADBSchemaValidator::int(%s)',
+        'float'  => '\\aeqdev\\ADBSchemaValidator::float(%s)',
+    ];
 
-    function __construct($file, $class, $prefix = '', $overrideMethodDocs = true)
+    function __construct($file, $class)
     {
         $this->file = fopen($file, 'w');
 
@@ -129,49 +140,36 @@ class ADBSchemaBuilder
             }
             fwrite($this->file, "    ];\n");
         }
+        if (!empty($tdata['cols'])) {
+            fwrite($this->file, "    public \$cols = [\n");
+            foreach ($tdata['cols'] as $col => $cdata) {
+                fwrite($this->file, "        '{$col}' => '{$col}',\n");
+            }
+            fwrite($this->file, "    ];\n");
+        }
         fwrite($this->file, "\n");
         fwrite($this->file, "    protected \$class_row = '\\\\{$this->namespace}\\\\Row_{$table}';\n");
-        fwrite($this->file, "}\n\n");
-    }
-
-    protected function renderStatement($table, $tdata)
-    {
-        fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table}[] fetchAll\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table}[] fetchPage\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} fetchOne\n");
-        fwrite($this->file, " *\n");
-        if ($this->overrideMethodDocs) {
-            foreach ([
-                'log',
-                'cache',
-                'nothing',
-                'table',
-                'pkey',
-                'fetchMode',
-                'join',
-                'leftJoin',
-                'where',
-                'orWhere',
-                'key',
-                'orKey',
-                'groupBy',
-                'having',
-                'orderBy',
-                'addOrderBy',
-                'limit',
-                'offset',
-                'fields',
-                'handler',
-                'referrers',
-                'references',
-                'referencesUnique',
-            ] as $method) {
-                fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} $method\n");
+        fwrite($this->file, "\n");
+        if (!empty($tdata['cols'])) {
+            foreach ($tdata['cols'] as $col => $cdata) {
+                $valid = "\$row->{$col}";
+                $valid = sprintf($this->validatorByType[$cdata['type']], $valid);
+                if (!empty($cdata['length'])) {
+                    $valid = sprintf($this->validatorLength, $valid, $cdata['length']);
+                }
+                if (!empty($tdata['fkey'])) {
+                    $rtable = array_search($col, $tdata['fkey']);
+                    if ($rtable !== false) {
+                        $valid = "isset(\$row->{$rtable}) ? \$row->{$rtable}->pkey() : $valid";
+                    }
+                }
+                if (empty($cdata['null']) && !in_array($col, $tdata['pkey'])) {
+                    $valid = sprintf($this->validatorNotNull, $valid);
+                }
+                fwrite($this->file, "    protected function valid_{$col}(\$row) { return $valid; }\n");
             }
         }
-        fwrite($this->file, " */\n");
-        fwrite($this->file, "class Statement_{$table} extends \\aeqdev\\ADBSchemaStatement {}\n\n");
+        fwrite($this->file, "}\n\n");
     }
 
     protected function renderRow($table, $tdata)
@@ -222,6 +220,46 @@ class ADBSchemaBuilder
             }
         }
         fwrite($this->file, "}\n\n");
+    }
+
+    protected function renderStatement($table, $tdata)
+    {
+        fwrite($this->file, "/**\n");
+        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table}[] fetchAll\n");
+        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table}[] fetchPage\n");
+        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} fetchOne\n");
+        fwrite($this->file, " *\n");
+        if ($this->overrideStatementDocs) {
+            foreach ([
+                'log',
+                'cache',
+                'nothing',
+                'table',
+                'pkey',
+                'fetchMode',
+                'join',
+                'leftJoin',
+                'where',
+                'orWhere',
+                'key',
+                'orKey',
+                'groupBy',
+                'having',
+                'orderBy',
+                'addOrderBy',
+                'limit',
+                'offset',
+                'fields',
+                'handler',
+                'referrers',
+                'references',
+                'referencesUnique',
+            ] as $method) {
+                fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} $method\n");
+            }
+        }
+        fwrite($this->file, " */\n");
+        fwrite($this->file, "class Statement_{$table} extends \\aeqdev\\ADBSchemaStatement {}\n\n");
     }
 
     protected function read($sql)
@@ -279,18 +317,18 @@ class ADBSchemaBuilder
                     # column type
                     if (preg_match('/(bool|char|text|blob|time|date|int|float|real|double|decimal)/', $cdef, $m)) {
                         switch ($m[1]) {
-                            case  'bool': $col['type'] = 'bool';  break;
-                            case  'char': $col['type'] = 'char';  break;
-                            case  'text': $col['type'] = 'text';  break;
-                            case  'time': $col['type'] = 'time';  break;
-                            case  'date': $col['type'] = 'date';  break;
-                            case   'int': $col['type'] = 'int';   break;
-                            case 'float': $col['type'] = 'float'; break;
+                            case  'bool': $col['type'] = 'bool';   break;
+                            case  'char': $col['type'] = 'string'; break;
+                            case  'text': $col['type'] = 'text';   break;
+                            case  'time': $col['type'] = 'time';   break;
+                            case  'date': $col['type'] = 'date';   break;
+                            case   'int': $col['type'] = 'int';    break;
+                            case 'float': $col['type'] = 'float';  break;
                         }
                     }
 
                     # length
-                    if ($col['type'] == 'char' || $col['type'] == 'text') {
+                    if ($col['type'] == 'string' || $col['type'] == 'text') {
                         if (preg_match('/\(\s*(\d+)\s*\)/', $cdef, $m)) {
                             $col['length'] = $m[1];
                         }
