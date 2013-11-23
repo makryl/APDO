@@ -1014,24 +1014,6 @@ class APDOStatement
         }
     }
 
-    protected function referrers_checkCachedRows($key, &$item, &$index, &$cached, &$keys)
-    {
-        $k = $item->{$key};
-        if (isset($k)) {
-            $index[$k] [] = & $item;
-            if (empty($cached[$k]) && empty($keys[$k])) {
-                $cache = $this->cacheGetRow($k);
-                if (isset($cache)) {
-                    $cached[$k] = $cache;
-                } else {
-                    $keys[$k] = $k;
-                }
-            }
-        }
-    }
-
-
-
     /**
      * Executes SELECT query with condition on primary key,
      * which values extracted from specified field of data.
@@ -1125,53 +1107,61 @@ class APDOStatement
                 $r = [];
                 if (isset($cached)) {
                     if ($unique) {
-                        foreach ($cached as &$row) {
-                            $r [] = & $row;
-                            foreach ($index[$row->{$pkey}] as &$item) {
-                                $item->{$reference} = & $row;
-                                $row->{$referrer} = & $item;
-                            }
-                            unset($item);
-                        }
+                        $this->referrers_setValuesUnique($r, $index, $referrer, $reference, $pkey, $cached);
                     } else {
-                        foreach ($cached as &$row) {
-                            $r [] = & $row;
-                            foreach ($index[$row->{$pkey}] as &$item) {
-                                $item->{$reference} = & $row;
-                                $row->{$referrer} [] = & $item;
-                            }
-                            unset($item);
-                        }
+                        $this->referrers_setValues($r, $index, $referrer, $reference, $pkey, $cached);
                     }
-                    unset($row);
                 }
                 if (isset($result)) {
                     if ($unique) {
-                        foreach ($result as &$row) {
-                            $r [] = & $row;
-                            foreach ($index[$row->{$pkey}] as &$item) {
-                                $item->{$reference} = & $row;
-                                $row->{$referrer} = & $item;
-                            }
-                            unset($item);
-                        }
+                        $this->referrers_setValuesUnique($r, $index, $referrer, $reference, $pkey, $result);
                     } else {
-                        foreach ($result as &$row) {
-                            $r [] = & $row;
-                            foreach ($index[$row->{$pkey}] as &$item) {
-                                $item->{$reference} = & $row;
-                                $row->{$referrer} [] = & $item;
-                            }
-                            unset($item);
-                        }
+                        $this->referrers_setValues($r, $index, $referrer, $reference, $pkey, $result);
                     }
-                    unset($row);
                 }
                 return $r;
             });
     }
 
+    protected function referrers_checkCachedRows($key, &$item, &$index, &$cached, &$keys)
+    {
+        $k = $item->{$key};
+        if (isset($k)) {
+            $index[$k] [] = & $item;
+            if (empty($cached[$k]) && empty($keys[$k])) {
+                $cache = $this->cacheGetRow($k);
+                if (isset($cache)) {
+                    $cached[$k] = $cache;
+                } else {
+                    $keys[$k] = $k;
+                }
+            }
+        }
+    }
 
+    protected function referrers_setValues(&$result, &$index, $referrer, $reference, $pkey, &$data)
+    {
+        foreach ($data as &$row) {
+            $result [] = & $row;
+            foreach ($index[$row->{$pkey}] as &$item) {
+                $item->{$reference} = & $row;
+                $row->{$referrer} [] = & $item;
+            }
+            unset($item);
+        }
+    }
+
+    protected function referrers_setValuesUnique(&$result, &$index, $referrer, $reference, $pkey, &$data)
+    {
+        foreach ($data as &$row) {
+            $result [] = & $row;
+            foreach ($index[$row->{$pkey}] as &$item) {
+                $item->{$reference} = & $row;
+                $row->{$referrer} = & $item;
+            }
+            unset($item);
+        }
+    }
 
     /**
      * Executes SELECT query with condition on specified field name,
