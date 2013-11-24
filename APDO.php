@@ -278,7 +278,7 @@ class APDOStatement
     protected $orderby;
     protected $limit;
     protected $offset = 0;
-    protected $fields = '*';
+    protected $columns = '*';
     protected $args = [];
     protected $handlers = [];
 
@@ -633,12 +633,12 @@ class APDOStatement
      * Sets fields of the statement.
      * First argument can be string with fields list, or an array of filed names.
      *
-     * @param string|array  $fields         Fields.
+     * @param string|array  $columns        Columns definition or array of column names.
      * @return \static                      Current statement.
      */
-    public function fields($fields)
+    public function columns($columns)
     {
-        $this->fields = implode(', ', (array)$fields);
+        $this->columns = implode(', ', (array)$columns);
         return $this;
     }
 
@@ -675,8 +675,8 @@ class APDOStatement
      */
     public function buildSelect()
     {
-        return 'SELECT ' . $this->fields
-            . "\nFROM " . $this->table
+        return 'SELECT ' . $this->columns
+            . (!empty($this->table)     ? "\nFROM "     . $this->table      : '')
             . (!empty($this->where)     ? "\nWHERE "    . $this->where      : '')
             . (!empty($this->groupby)   ? "\nGROUP BY " . $this->groupby    : '')
             . (!empty($this->having)    ? "\nHAVING "   . $this->having     : '')
@@ -958,7 +958,7 @@ class APDOStatement
 
     protected function cacheKeyRow($id, $fetchMode)
     {
-        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->fields . '-fetch-' . $fetchMode);
+        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->columns . '-fetch-' . $fetchMode);
     }
 
     protected function cacheSetStatement($statement, $args, $fetchMode, $result, $canCacheRow)

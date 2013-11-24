@@ -11,13 +11,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-namespace aeqdev;
+namespace aeqdev\APDO\Schema;
 
 /**
  *
  */
-class ADBSchemaBuilder
+class Builder
 {
+
+    protected $currNamespace = __NAMESPACE__;
 
     public $file;
     public $class;
@@ -25,17 +27,11 @@ class ADBSchemaBuilder
     public $prefix = '';
     public $overrideStatementDocs = true;
     public $schema;
-    public $validatorNotNull = "\\aeqdev\\ADBSchemaValidator::required(%s)";
-    public $validatorLength = '\\aeqdev\\ADBSchemaValidator::length(%s, %s)';
-    public $validatorByType = [
-        'bool'   => '\\aeqdev\\ADBSchemaValidator::bool(%s)',
-        'string' => '\\aeqdev\\ADBSchemaValidator::string(%s)',
-        'text'   => '\\aeqdev\\ADBSchemaValidator::string(%s)',
-        'time'   => '\\aeqdev\\ADBSchemaValidator::time(%s)',
-        'date'   => '\\aeqdev\\ADBSchemaValidator::date(%s)',
-        'int'    => '\\aeqdev\\ADBSchemaValidator::int(%s)',
-        'float'  => '\\aeqdev\\ADBSchemaValidator::float(%s)',
-    ];
+    public $classSchema;
+    public $classTable;
+    public $classRow;
+    public $classColumn;
+    public $classColumnByType;
 
     function __construct($file, $class)
     {
@@ -48,6 +44,21 @@ class ADBSchemaBuilder
             $class = substr($class, $nssep + 1);
         }
         $this->class = $class;
+
+        $this->classSchema = '\\' . $this->currNamespace;
+        $this->classTable  = '\\' . $this->currNamespace . '\\Table';
+        $this->classRow    = '\\' . $this->currNamespace . '\\Row';
+        $this->classColumn = '\\' . $this->currNamespace . '\\Column';
+
+        $this->classColumnByType = [
+            'int'    => $this->classColumn . '\\Int',
+            'float'  => $this->classColumn . '\\Float',
+            'bool'   => $this->classColumn . '\\Bool',
+            'string' => $this->classColumn . '\\String',
+            'text'   => $this->classColumn . '\\String',
+            'time'   => $this->classColumn . '\\Time',
+            'date'   => $this->classColumn . '\\Date',
+        ];
     }
 
     public function saveFromFile($sqlFile)
@@ -58,6 +69,11 @@ class ADBSchemaBuilder
     public function saveFromString($sql)
     {
         $this->save($this->read($sql));
+    }
+
+    protected function getClassColumnByType($type)
+    {
+        return isset($this->classColumnByType[$type]) ? $this->classColumnByType[$type] : $this->classColumn;
     }
 
     protected function save()
@@ -95,7 +111,7 @@ class ADBSchemaBuilder
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class {$this->class} extends \\aeqdev\\ADBSchema\n{\n");
+        fwrite($this->file, "class {$this->class} extends {$this->classSchema}\n{\n");
         if (!empty($this->prefix)) {
             fwrite($this->file, "    public \$prefix = '{$this->prefix}';\n");
         }
@@ -115,8 +131,15 @@ class ADBSchemaBuilder
         fwrite($this->file, " *\n");
         fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} create()\n");
         fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} get(\$id)\n");
+        if (!empty($tdata['cols'])) {
+            fwrite($this->file, " *\n");
+            foreach ($tdata['cols'] as $col => $cdata) {
+                $cclass = $this->getClassColumnByType($cdata['type']);
+                fwrite($this->file, " * @method $cclass $col()\n");
+            }
+        }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Table_{$table} extends \\aeqdev\\ADBSchemaTable\n");
+        fwrite($this->file, "class Table_{$table} extends {$this->classTable}\n");
         fwrite($this->file, "{\n");
         fwrite($this->file, "    public \$name = '$table';\n");
         if (!empty($tdata['pkey'])) {
@@ -143,7 +166,7 @@ class ADBSchemaBuilder
         if (!empty($tdata['cols'])) {
             fwrite($this->file, "    public \$cols = [\n");
             foreach ($tdata['cols'] as $col => $cdata) {
-                fwrite($this->file, "        '{$col}' => '{$col}',\n");
+                fwrite($this->file, "        '$col' => '$col',\n");
             }
             fwrite($this->file, "    ];\n");
         }
@@ -152,21 +175,22 @@ class ADBSchemaBuilder
         fwrite($this->file, "\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
-                $valid = "\$row->{$col}";
-                $valid = sprintf($this->validatorByType[$cdata['type']], $valid);
+                $cclass = $this->getClassColumnByType($cdata['type']);
+                $cdef = "(new $cclass())";
+
                 if (!empty($cdata['length'])) {
-                    $valid = sprintf($this->validatorLength, $valid, $cdata['length']);
+                    $cdef = $cdef . "->length({$cdata['length']})";
                 }
                 if (!empty($tdata['fkey'])) {
                     $rtable = array_search($col, $tdata['fkey']);
                     if ($rtable !== false) {
-                        $valid = "isset(\$row->{$rtable}) ? \$row->{$rtable}->pkey() : $valid";
+                        $cdef = $cdef . "->fkey('$rtable')";
                     }
                 }
                 if (empty($cdata['null']) && !in_array($col, $tdata['pkey'])) {
-                    $valid = sprintf($this->validatorNotNull, $valid);
+                    $cdef = $cdef . "->required()";
                 }
-                fwrite($this->file, "    protected function valid_{$col}(\$row) { return $valid; }\n");
+                fwrite($this->file, "    protected function column_{$col}() { return $cdef; }\n");
             }
         }
         fwrite($this->file, "}\n\n");
@@ -193,7 +217,7 @@ class ADBSchemaBuilder
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Row_{$table} extends \\aeqdev\\ADBSchemaRow\n");
+        fwrite($this->file, "class Row_{$table} extends {$this->classRow}\n");
         fwrite($this->file, "{\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -259,7 +283,7 @@ class ADBSchemaBuilder
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Statement_{$table} extends \\aeqdev\\ADBSchemaStatement {}\n\n");
+        fwrite($this->file, "class Statement_{$table} extends \\{$this->currNamespace}\\Statement {}\n\n");
     }
 
     protected function read($sql)
