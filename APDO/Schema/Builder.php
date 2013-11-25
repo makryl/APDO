@@ -162,6 +162,11 @@ class Builder
                 fwrite($this->file, "        '$rtable' => '$fkey',\n");
             }
             fwrite($this->file, "    ];\n");
+            fwrite($this->file, "    public \$rfkey = [\n");
+            foreach ($tdata['fkey'] as $rtable => $fkey) {
+                fwrite($this->file, "        '$fkey' => '$rtable',\n");
+            }
+            fwrite($this->file, "    ];\n");
         }
         if (!empty($tdata['cols'])) {
             fwrite($this->file, "    public \$cols = [\n");
@@ -184,7 +189,7 @@ class Builder
                 if (!empty($tdata['fkey'])) {
                     $rtable = array_search($col, $tdata['fkey']);
                     if ($rtable !== false) {
-                        $cdef = $cdef . "->fkey('$rtable')";
+                        $cdef = $cdef . "->fkey()";
                     }
                 }
                 if (empty($cdata['null']) && !in_array($col, $tdata['pkey'])) {

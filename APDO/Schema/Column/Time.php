@@ -18,4 +18,13 @@ class Time extends \aeqdev\APDO\Schema\Column
         });
     }
 
+    /**
+     * @return \static
+     */
+    public function format($format)
+    {
+        $this->format = $format;
+        return $this;
+    }
+
 }

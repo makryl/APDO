@@ -10,7 +10,7 @@ class String extends \aeqdev\APDO\Schema\Column
 
     public function __construct()
     {
-        $this->addValidator(function($value) {
+        return $this->addValidator(function($value) {
             if (isset($value)) {
                 $value = trim($value);
             }
@@ -23,22 +23,11 @@ class String extends \aeqdev\APDO\Schema\Column
      */
     public function length($length)
     {
-        $this->addValidator(function($value) use ($length) {
+        return $this->addValidator(function($value) use ($length) {
             if (isset($value)) {
                 $value = mb_substr($value, 0, $length);
             }
             return $value;
-        });
-    }
-
-    /**
-     * @return \static
-     */
-    public function sprintf($format)
-    {
-
-        return $this->addValidator(function($value) use ($format) {
-            return sprintf($format, $value);
         });
     }
 
@@ -85,28 +74,26 @@ class String extends \aeqdev\APDO\Schema\Column
     /**
      * @return \static
      */
-    public function match($pattern, $errorMessage = null)
+    public function email($error_message = null)
     {
-        return $this->filterVar(FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => $pattern]], $errorMessage);
+        return $this->filterStrict(FILTER_VALIDATE_EMAIL, null, $error_message);
     }
 
     /**
      * @return \static
      */
-    public function email($errorMessage = null)
+    public function ip($error_message = null)
     {
-        return $this->filterVar(FILTER_VALIDATE_EMAIL, null, $errorMessage);
+        return $this->filterStrict(FILTER_VALIDATE_IP, null, $error_message);
     }
 
     /**
      * @return \static
      */
-    public function ip($options = null, $errorMessage = null)
+    public function match($pattern, $error_message = null)
     {
-        return $this->filterVar(FILTER_VALIDATE_IP, $options, $errorMessage);
+        return $this->filterStrict(FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => $pattern]], $error_message);
     }
-
-
 
     /**
      * @return \static

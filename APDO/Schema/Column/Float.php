@@ -10,9 +10,7 @@ class Float extends \aeqdev\APDO\Schema\Column
 
     public function __construct()
     {
-        $this->addValidator(function($value) {
-            return isset($value) && trim($value) !== '' ? (float)$value : null;
-        });
+        $this->filter(FILTER_VALIDATE_FLOAT);
     }
 
 }

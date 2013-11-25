@@ -8,15 +8,25 @@ namespace aeqdev\APDO\Schema;
 class Column
 {
 
+    /**
+     * @var Table
+     */
+    public $table;
     public $name;
 
     protected $validators = [];
+
+    public function __constructor(Table $table, $name)
+    {
+        $this->table = $table;
+        $this->name = $name;
+    }
 
     public function value(Row $row)
     {
         $value = $row->{$this->name};
         foreach ($this->validators as $validator) {
-            $value = $validator($value, $this->name, $row);
+            $value = $validator($value, $row, $this);
         }
         return $value;
     }
@@ -32,16 +42,40 @@ class Column
     }
 
     /**
-     * @throws StringEmailException
      * @return \static
      */
-    public function filterVar($filter, $options = null, $errorMessage = null)
+    public function filter($filter, $options = null)
     {
         if (!isset($options['default'])) {
             $options['default'] = null;
         }
-        return $this->addValidator(function($value) use ($filter, $options, $errorMessage) {
-            return isset($value) ? filter_var($value, $filter, $options) : null;
+        return $this->addValidator(function($value) use ($filter, $options) {
+            return filter_var($value, $filter, $options);
+        });
+    }
+
+    public static $filter_error_message;
+
+    /**
+     * @throws StringEmailException
+     * @return \static
+     */
+    public function filterStrict($filter, $options = null, $error_message = null)
+    {
+        if (!isset($options['default'])) {
+            $options['default'] = null;
+        }
+        if (!isset($error_message)) {
+            $error_message = self::$filter_error_message;
+        }
+        return $this->addValidator(function($value) use ($filter, $options, $error_message) {
+            if (isset($value)) {
+                $value = filter_var($value, $filter, $options);
+                if (!isset($value)) {
+                    throw new ColumnValidatorException($this, $error_message);
+                }
+            }
+            return $value;
         });
     }
 
@@ -81,11 +115,12 @@ class Column
     /**
      * @return \static
      */
-    function fkey($table)
+    function fkey()
     {
-        return $this->addValidator(function($value, $name, $row) use ($table)
+        $rtable = $this->table->rfkey[$this->name];
+        return $this->addValidator(function($value, $row) use ($rtable)
         {
-            return isset($row->{$table}) ? $row->{$table}->pkey() : $value;
+            return isset($row->{$rtable}) ? $row->{$rtable}->pkey() : $value;
         });
     }
 
@@ -108,4 +143,3 @@ class ColumnValidatorException extends \Exception
 }
 
 class ColumnRequiredException extends ColumnValidatorException {}
-class ColumnFilterVarException extends ColumnValidatorException {}

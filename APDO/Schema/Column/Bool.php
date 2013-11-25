@@ -10,9 +10,7 @@ class Bool extends \aeqdev\APDO\Schema\Column
 
     public function __construct()
     {
-        $this->addValidator(function($value) {
-            return isset($value) && trim($value) !== '' ? (bool)$value : null;
-        });
+        $this->filter(FILTER_VALIDATE_BOOLEAN);
     }
 
 }
