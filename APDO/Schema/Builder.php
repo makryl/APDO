@@ -27,6 +27,7 @@ class Builder
     public $prefix = '';
     public $overrideStatementDocs = true;
     public $schema;
+    public $uses;
     public $classSchema;
     public $classTable;
     public $classRow;
@@ -82,6 +83,13 @@ class Builder
 
         if (!empty($this->namespace)) {
             fwrite($this->file, "namespace {$this->namespace};\n\n");
+        }
+
+        if (!empty($this->uses)) {
+            foreach ($this->uses as $use) {
+                fwrite($this->file, "use $use;\n");
+            }
+            fwrite($this->file, "\n");
         }
 
         $this->renderSchema();
