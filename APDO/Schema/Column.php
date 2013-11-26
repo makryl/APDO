@@ -68,11 +68,11 @@ class Column
         if (!isset($error_message)) {
             $error_message = self::$filter_error_message;
         }
-        return $this->addValidator(function($value) use ($filter, $options, $error_message) {
+        return $this->addValidator(function($value, $row) use ($filter, $options, $error_message) {
             if (isset($value)) {
                 $value = filter_var($value, $filter, $options);
                 if (!isset($value)) {
-                    throw new ColumnValidatorException($this, $error_message);
+                    throw new ColumnValidatorException($row, $this, $error_message);
                 }
             }
             return $value;
@@ -84,14 +84,14 @@ class Column
      */
     public function required()
     {
-        return $this->addValidator(function ($value) {
+        return $this->addValidator(function ($value, $row) {
             if (
                 empty($value)
                 && $value !== 0
                 && $value !== 0.
                 && $value !== false
             ) {
-                throw new ColumnRequiredException($this);
+                throw new ColumnRequiredException($row, $this);
             }
             return $value;
         });
@@ -130,13 +130,19 @@ class ColumnValidatorException extends \Exception
 {
 
     /**
+     * @var \aeqdev\APDO\Schema\Row
+     */
+    public $row;
+
+    /**
      * @var \aeqdev\APDO\Schema\Column
      */
     public $column;
 
-    public function __construct(Column $column, $message, $code, $previous)
+    public function __construct(Row $row, Column $column, $message, $code, $previous)
     {
         parent::__construct($message, $code, $previous);
+        $this->row = $row;
         $this->column = $column;
     }
 
