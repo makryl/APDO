@@ -31,7 +31,7 @@ class ArrayCache implements ICache
 
     public function get($name)
     {
-        return issset($this->cache[$name]) ? $this->cache[$name] : null;
+        return isset($this->cache[$name]) ? $this->cache[$name] : null;
     }
 
     public function set($name, $value)

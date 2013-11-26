@@ -13,6 +13,8 @@
 
 namespace aeqdev\APDO\Schema;
 
+use \aeqdev\APDO\Schema;
+
 /**
  *
  */

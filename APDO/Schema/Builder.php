@@ -354,13 +354,18 @@ class Builder
                     # column type
                     if (preg_match('/(bool|char|text|blob|time|date|int|float|real|double|decimal)/', $cdef, $m)) {
                         switch ($m[1]) {
-                            case  'bool': $col['type'] = 'bool';   break;
-                            case  'char': $col['type'] = 'string'; break;
-                            case  'text': $col['type'] = 'text';   break;
-                            case  'time': $col['type'] = 'time';   break;
-                            case  'date': $col['type'] = 'date';   break;
-                            case   'int': $col['type'] = 'int';    break;
-                            case 'float': $col['type'] = 'float';  break;
+                            case    'bool': $col['type'] = 'bool';   break;
+                            case    'char': $col['type'] = 'string'; break;
+                            case    'text': $col['type'] = 'text';   break;
+                            case    'blob': $col['type'] = 'text';   break;
+                            case    'time': $col['type'] = 'time';   break;
+                            case    'date': $col['type'] = 'date';   break;
+                            case     'int': $col['type'] = 'int';    break;
+                            case  'serial': $col['type'] = 'int';    break;
+                            case   'float': $col['type'] = 'float';  break;
+                            case    'real': $col['type'] = 'float';  break;
+                            case  'double': $col['type'] = 'float';  break;
+                            case 'decimal': $col['type'] = 'float';  break;
                         }
                     }
 

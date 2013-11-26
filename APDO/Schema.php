@@ -13,6 +13,8 @@
 
 namespace aeqdev\APDO;
 
+use \aeqdev\APDO\Schema\Statement;
+
 /**
  *
  */
@@ -39,7 +41,7 @@ class Schema extends \aeqdev\APDO
 
     public function statement($statement = null, $args = null)
     {
-        return new tatement($this->parameters, $statement, $args);
+        return new Statement($this->parameters, $statement, $args);
     }
 
 }

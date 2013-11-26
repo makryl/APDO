@@ -37,7 +37,7 @@ class Row
 
     public function __call($name, $args)
     {
-        if (isset($this->table['cols'][$name])) {
+        if (isset($this->table->cols[$name])) {
             return $this->table->{$name}()->value($this);
         } else {
             /* @var $statement \aeqdev\APDO\Schema\Statement */

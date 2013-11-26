@@ -630,8 +630,8 @@ class APDOStatement
     }
 
     /**
-     * Sets fields of the statement.
-     * First argument can be string with fields list, or an array of filed names.
+     * Sets columns of the statement.
+     * First argument can be string with columns list, or an array of filed names.
      *
      * @param string|array  $columns        Columns definition or array of column names.
      * @return \static                      Current statement.
@@ -725,7 +725,7 @@ class APDOStatement
     public function fetchPairs($name = null, $keyName = null)
     {
         return $this
-            ->fields([
+            ->columns([
                 isset($keyName) ? $keyName : $this->pkey,
                 isset($name) ? $name : $this->pkey,
             ])
@@ -764,10 +764,10 @@ class APDOStatement
      *
      * @return array                        Result array.
      */
-    public function fetchRow($fields)
+    public function fetchRow($columns)
     {
         return $this
-            ->fields($fields)
+            ->columns($columns)
             ->fetchOne(PDO::FETCH_NUM);
     }
 
@@ -777,10 +777,10 @@ class APDOStatement
      *
      * @return string                       Result cell value.
      */
-    public function fetchCell($field)
+    public function fetchCell($column)
     {
         return $this
-            ->fields($field)
+            ->columns($column)
             ->fetchOne(PDO::FETCH_COLUMN);
     }
 
@@ -870,7 +870,7 @@ class APDOStatement
             $set .= $n . "=?,\n    ";
             $args []= $a;
         }
-        $set = substr($set, 0, -2);
+        $set = substr($set, 0, -6);
         $this->args = array_merge($args, $this->args);
 
         return $this->query(
@@ -958,7 +958,7 @@ class APDOStatement
 
     protected function cacheKeyRow($id, $fetchMode)
     {
-        return 'id/' . md5($this->table . '-id-' . $id . '-fields-' . $this->columns . '-fetch-' . $fetchMode);
+        return 'id/' . md5($this->table . '-id-' . $id . '-columns-' . $this->columns . '-fetch-' . $fetchMode);
     }
 
     protected function cacheSetStatement($statement, $args, $fetchMode, $result, $canCacheRow)

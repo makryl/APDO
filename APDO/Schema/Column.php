@@ -51,8 +51,11 @@ class Column
      */
     public function filter($filter, $options = null)
     {
-        if (!isset($options['default'])) {
-            $options['default'] = null;
+        if (!is_array($options)) {
+            $options = ['flags' => $options];
+        }
+        if (!isset($options['options']['default'])) {
+            $options['options']['default'] = null;
         }
         return $this->addValidator(function($value) use ($filter, $options) {
             return filter_var($value, $filter, $options);
@@ -67,8 +70,11 @@ class Column
      */
     public function filterStrict($filter, $options = null, $error_message = null)
     {
-        if (!isset($options['default'])) {
-            $options['default'] = null;
+        if (!is_array($options)) {
+            $options = ['flags' => $options];
+        }
+        if (!isset($options['options']['default'])) {
+            $options['options']['default'] = null;
         }
         if (!isset($error_message)) {
             $error_message = self::$filter_error_message;

@@ -3,8 +3,8 @@
 namespace aeqdev;
 
 require '../APDO.php';
-require '../apdo/ICache.php';
-require '../apdo/ArrayCache.php';
+require '../APDO/ICache.php';
+require '../APDO/ArrayCache.php';
 
 
 
@@ -42,6 +42,8 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree) VALUES (3, 'orange', 2)")->execute();
 
         $this->cache = new apdo\ArrayCache();
+
+        $this->object->setFetchMode(\PDO::FETCH_ASSOC);
     }
 
 
@@ -60,7 +62,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     function testExecutedCount()
     {
         $old_executedCount = $this->object->executedCount();
-        $this->object->statement('SELECT 1')->all();
+        $this->object->statement('SELECT 1')->fetchAll();
         $this->object->statement('SELECT 2')->execute();
         $this->assertEquals(2, $this->object->executedCount() - $old_executedCount);
     }
@@ -69,7 +71,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
     function testLastQuery()
     {
-        $this->object->statement('SELECT 111')->all();
+        $this->object->statement('SELECT 111')->fetchAll();
         $this->assertEquals('SELECT 111', $this->object->last()->lastQuery());
 
         $this->object->statement('SELECT 222')->execute();
@@ -101,14 +103,14 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
         $r = $this->object->statement($statement)
             ->cache($this->cache)
-            ->all();
+            ->fetchAll();
         $this->assertEquals($result, $r);
 
         $executedCount = $this->object->executedCount();
 
         $r = $this->object->statement($statement)
             ->cache($this->cache)
-            ->all();
+            ->fetchAll();
         $this->assertEquals($result, $r);
         $this->assertEquals($executedCount, $this->object->executedCount());
     }
@@ -121,7 +123,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             ->from('apdo_test_fruit')
             ->pkey('id')
             ->key(1)
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -137,9 +139,9 @@ LIMIT 1', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit A')
             ->join('apdo_test_tree B', 'A.tree=B.id')
-            ->fields('A.name as fruit_name, B.name as tree_name')
+            ->columns('A.name as fruit_name, B.name as tree_name')
             ->orderBy('A.id')
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT A.name as fruit_name, B.name as tree_name
 FROM apdo_test_fruit A
@@ -157,7 +159,7 @@ LIMIT 1',
         $r = $this->object
             ->from('apdo_test_fruit')
             ->where('id=?', 2)
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -174,7 +176,7 @@ LIMIT 1', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->where('id=?', 2)
             ->orWhere('id=?', 3)
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -193,7 +195,7 @@ WHERE (id=?) OR (id=?)', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->key([2, 3])
             ->orderBy('id')
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -211,7 +213,7 @@ LIMIT 1', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->key([2, 3])
             ->orKey([1, 2])
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -231,7 +233,7 @@ WHERE (id IN (?,?)) OR (id IN (?,?))', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id DESC')
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -248,7 +250,7 @@ LIMIT 1', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->addOrderBy('id', true)
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -264,7 +266,7 @@ LIMIT 1', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->limit(2)
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -281,7 +283,7 @@ LIMIT 2', $this->object->last()->lastQuery());
             ->orderBy('id')
             ->limit(1)
             ->offset(1)
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -299,7 +301,7 @@ OFFSET 1', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->orderBy('id')
             ->limit(1)
-            ->page(2);
+            ->fetchPage(2);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -315,9 +317,9 @@ OFFSET 1', $this->object->last()->lastQuery());
     {
         $r = $this->object
             ->from('apdo_test_fruit')
-            ->fields(['id', 'id AS id2'])
+            ->columns(['id', 'id AS id2'])
             ->orderBy('id')
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT id, id AS id2
 FROM apdo_test_fruit
@@ -333,7 +335,7 @@ LIMIT 1', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id')
-            ->one();
+            ->fetchOne();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -349,7 +351,7 @@ LIMIT 1', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id')
-            ->oneL();
+            ->fetchRow();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -366,7 +368,7 @@ LIMIT 1', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->orderBy('id')
             ->limit(1)
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -381,27 +383,10 @@ LIMIT 1', $this->object->last()->lastQuery());
     {
         $r = $this->object
             ->from('apdo_test_fruit')
-            ->fields('id, id')
+            ->columns('id, id')
             ->orderBy('id')
             ->limit(1)
-            ->allK();
-        $this->assertEquals(
-            'SELECT id, id
-FROM apdo_test_fruit
-ORDER BY id
-LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals([1 => 1], $r);
-    }
-
-
-
-    function testKeys()
-    {
-        $r = $this->object
-            ->from('apdo_test_fruit')
-            ->orderBy('id')
-            ->limit(1)
-            ->keys('id');
+            ->fetchPairs();
         $this->assertEquals(
             'SELECT id, id
 FROM apdo_test_fruit
@@ -443,7 +428,7 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->key([11, 12])
-            ->all();
+            ->fetchAll();
         $this->assertEquals([
             ['id' => 11, 'name' => 'apple11', 'tree' => 1],
             ['id' => 12, 'name' => 'apple12', 'tree' => 1]
@@ -472,7 +457,7 @@ WHERE id=?', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->key(21)
-            ->one();
+            ->fetchOne();
         $this->assertEquals(['id' => 21, 'name' => 'apple22', 'tree' => 1], $r);
     }
 
@@ -496,7 +481,7 @@ WHERE id=?', $this->object->last()->lastQuery());
         $r = $this->object
             ->from('apdo_test_fruit')
             ->key(31)
-            ->one();
+            ->fetchOne();
         $this->assertEquals(null, $r);
     }
 
@@ -507,7 +492,7 @@ WHERE id=?', $this->object->last()->lastQuery());
         $fruits = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id')
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -516,7 +501,7 @@ ORDER BY id', $this->object->last()->lastQuery());
         $trees = $this->object
             ->from('apdo_test_tree')
             ->referrers($fruits, 'fruits', 'tree')
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -532,7 +517,7 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
         $trees = $this->object
             ->from('apdo_test_tree')
             ->orderBy('id')
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -541,7 +526,7 @@ ORDER BY id', $this->object->last()->lastQuery());
         $fruits = $this->object
             ->from('apdo_test_fruit')
             ->references($trees, 'fruits', 'tree')
-            ->all();
+            ->fetchAll();
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
