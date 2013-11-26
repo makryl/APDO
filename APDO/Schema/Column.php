@@ -117,9 +117,9 @@ class Column
      */
     function fkey()
     {
-        $rtable = $this->table->rfkey[$this->name];
-        return $this->addValidator(function($value, $row) use ($rtable)
+        return $this->addValidator(function($value, $row)
         {
+            $rtable = $this->table->rfkey[$this->name];
             return isset($row->{$rtable}) ? $row->{$rtable}->pkey() : $value;
         });
     }

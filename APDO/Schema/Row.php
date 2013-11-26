@@ -5,11 +5,11 @@ namespace aeqdev\APDO\Schema;
 /**
  *
  */
-abstract class Row
+class Row
 {
 
-    public $values;
     public $table;
+    public $values;
 
     protected $new;
 
