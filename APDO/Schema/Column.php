@@ -16,12 +16,6 @@ class Column
 
     protected $validators = [];
 
-    public function __constructor(Table $table, $name)
-    {
-        $this->table = $table;
-        $this->name = $name;
-    }
-
     public function value(Row $row)
     {
         $value = $row->{$this->name};

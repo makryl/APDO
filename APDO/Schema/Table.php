@@ -31,7 +31,10 @@ class Table
     {
         if (isset($this->cols[$name])) {
             if (!isset($this->columns[$name])) {
-                $this->columns[$name] = $this->{'column_' . $name}($this, $name);
+                $column = $this->{'column_' . $name}();
+                $column->table = $this;
+                $column->name = $name;
+                $this->columns[$name] = $column;
             }
             return $this->columns[$name];
         }
