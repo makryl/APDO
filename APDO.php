@@ -136,7 +136,7 @@ class APDO
      * Sets default fetch style for new statements.
      * See details in PDOStatement::setFetchMode.
      *
-     * @param string $fetch                 PDO fetch mode.
+     * @param string $fetchMode             PDO fetch mode.
      * @param string $fetchArg              Column number or class name or object.
      * @param string $fetchCtorArgs         Constructor arguments.
      */
@@ -408,7 +408,7 @@ class APDOStatement
      * Sets fetch style for the statement, that will be used in methods all(), page() and one().
      * See details in PDOStatement::setFetchMode
      *
-     * @param string $fetch                 PDO fetch mode.
+     * @param string $fetchMode             PDO fetch mode.
      * @param string $fetchArg              Column number or class name or object.
      * @param string $fetchCtorArgs         Constructor arguments.
      * @return \static                      Current statement.
@@ -505,7 +505,7 @@ class APDOStatement
      * Set last argument append type to true, if you want to append conditions with OR operator.
      *
      * @param string|array  $args           Value or array of values.
-     * @param string|array  $name           Field name or array of field names. By default primary key name is used.
+     * @param string|array  $name           Column name or array of column names. By default primary key name is used.
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
@@ -540,7 +540,7 @@ class APDOStatement
      * Conditions appends to previously defined conditions with OR operator.
      *
      * @param string|array  $args           Value or array of values.
-     * @param string|array  $name           Field name or array of field names. By default primary key name is used.
+     * @param string|array  $name           Column name or array of column names. By default primary key name is used.
      * @return \static                      Current statement.
      */
     public function orKey($args, $name = null)
@@ -587,18 +587,18 @@ class APDOStatement
     }
 
     /**
-     * Adds field with sort direction to ORDER BY section of the statement.
+     * Adds column with sort direction to ORDER BY section of the statement.
      *
-     * @param string        $field          Field name.
+     * @param string        $column         Column name.
      * @param bool          $desc           Default false for ASC, true for DESC.
      * @return \static                      Current statement.
      */
-    public function addOrderBy($field, $desc = false)
+    public function addOrderBy($column, $desc = false)
     {
         if (!empty($this->orderby)) {
             $this->orderby .= ', ';
         }
-        $this->orderby .= $field;
+        $this->orderby .= $column;
         if ($desc) {
             $this->orderby .= ' DESC';
         }
@@ -694,6 +694,9 @@ class APDOStatement
      *
      * Result retrieves from database using PDO's method fetchAll()
      *
+     * @param string $fetchMode             PDO fetch mode.
+     * @param string $fetchArg              Column number or class name or object.
+     * @param string $fetchCtorArgs         Constructor arguments.
      * @return array|object[]               Result array.
      */
     public function fetchAll($fetchMode = null, $fetchArg = null, $fetchCtorArgs = null)
@@ -717,9 +720,11 @@ class APDOStatement
     }
 
     /**
-     * Same as method all() with fetch style PDO::FETCH_KEY_PAIR.
+     * Same as method fetchAll() with fetch style PDO::FETCH_KEY_PAIR.
      * Intended to retrieve key-value result array.
      *
+     * @param string        $name           Column name for result array values. Primary key by default.
+     * @param string        $keyName        Column name for result array keys. Primary key by default.
      * @return array                        Result array.
      */
     public function fetchPairs($name = null, $keyName = null)
@@ -733,7 +738,7 @@ class APDOStatement
     }
 
     /**
-     * Same as method all() with offset calculated from page number and current limit.
+     * Same as method fetchAll() with offset calculated from page number and current limit.
      *
      * @param int           $page           Page number.
      * @return array|object[]               Result array.
@@ -746,9 +751,13 @@ class APDOStatement
     }
 
     /**
-     * Same as method all() with limit 1, and returns first element of result array or null if result is empty.
+     * Same as method fetchAll() with limit 1,
+     * and returns first element of result array or null if result is empty.
      *
-     * @return array|object                 Result array.
+     * @param string $fetchMode             PDO fetch mode.
+     * @param string $fetchArg              Column number or class name or object.
+     * @param string $fetchCtorArgs         Constructor arguments.
+     * @return array|object                 Result row.
      */
     public function fetchOne($fetchMode = null, $fetchArg = null, $fetchCtorArgs = null)
     {
@@ -759,10 +768,10 @@ class APDOStatement
     }
 
     /**
-     * Same as method one() with fetch stype PDO::FETCH_NUM.
+     * Same as method fetchOne() with fetch stype PDO::FETCH_NUM.
      * Intended to use with php language construct list().
      *
-     * @return array                        Result array.
+     * @return array                        Result row.
      */
     public function fetchRow($columns)
     {
@@ -772,8 +781,9 @@ class APDOStatement
     }
 
     /**
-     * Same as method one() with fetch stype PDO::FETCH_NUM.
-     * Intended to use with php language construct list().
+     * Retrieves value of only one column in one row.
+     * Same as method fetchOne() with fetch stype PDO::FETCH_COLUMN,
+     * and returns value of first column or null if result is empty.
      *
      * @return string                       Result cell value.
      */
@@ -813,7 +823,7 @@ class APDOStatement
 
     /**
      * Executes INSERT query using statement's table name,
-     * and array of values with keys as field names.
+     * and array of values with keys as column names.
      * Array of values also can be array of arrays for massive insertion.
      * Returns last inserted id.
      *
@@ -853,7 +863,7 @@ class APDOStatement
 
     /**
      * Executes UPDATE query using statement's table name, conditions,
-     * and array of values with keys as field names.
+     * and array of values with keys as column names.
      *
      * @param array|object  $values         Array of values to update.
      * @return bool                         True on success or false on failure.
