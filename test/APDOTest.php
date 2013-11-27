@@ -2,9 +2,9 @@
 
 namespace aeqdev;
 
-require '../APDO.php';
-require '../APDO/ICache.php';
-require '../APDO/ArrayCache.php';
+require '../aeqdev/APDO.php';
+require '../aeqdev/APDO/ICache.php';
+require '../aeqdev/APDO/ArrayCache.php';
 
 
 
