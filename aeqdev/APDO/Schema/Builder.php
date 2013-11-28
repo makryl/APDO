@@ -19,14 +19,8 @@ namespace aeqdev\APDO\Schema;
 class Builder
 {
 
-    protected $currNamespace = __NAMESPACE__;
-
-    public $file;
-    public $class;
-    public $namespace;
     public $prefix = '';
     public $overrideStatementDocs = true;
-    public $schema;
     public $uses;
     public $classSchema;
     public $classTable;
@@ -34,22 +28,17 @@ class Builder
     public $classColumn;
     public $classColumnByType;
 
-    function __construct($file, $class)
+    protected $file;
+    protected $schema;
+    protected $class;
+    protected $namespace;
+
+    function __construct()
     {
-        $this->file = fopen($file, 'w');
-
-        $class = ltrim($class, '\\');
-        $nssep = strrpos($class, '\\');
-        if ($nssep !== false) {
-            $this->namespace = substr($class, 0, $nssep);
-            $class = substr($class, $nssep + 1);
-        }
-        $this->class = $class;
-
-        $this->classSchema = '\\' . $this->currNamespace;
-        $this->classTable  = '\\' . $this->currNamespace . '\\Table';
-        $this->classRow    = '\\' . $this->currNamespace . '\\Row';
-        $this->classColumn = '\\' . $this->currNamespace . '\\Column';
+        $this->classSchema = '\\' . __NAMESPACE__;
+        $this->classTable  = '\\' . __NAMESPACE__ . '\\Table';
+        $this->classRow    = '\\' . __NAMESPACE__ . '\\Row';
+        $this->classColumn = '\\' . __NAMESPACE__ . '\\Column';
 
         $this->classColumnByType = [
             'int'    => $this->classColumn . '\\Int',
@@ -62,23 +51,25 @@ class Builder
         ];
     }
 
-    public function saveFromFile($sqlFile)
+    public function read($file)
     {
-        $this->save($this->read(file_get_contents($sqlFile)));
+        $this->readSQL(file_get_contents($file));
     }
 
-    public function saveFromString($sql)
+    public function save($file, $class)
     {
-        $this->save($this->read($sql));
-    }
+        $this->file = fopen($file, 'w');
 
-    protected function getClassColumnByType($type)
-    {
-        return isset($this->classColumnByType[$type]) ? $this->classColumnByType[$type] : $this->classColumn;
-    }
+        $class = ltrim($class, '\\');
+        $nssep = strrpos($class, '\\');
+        if ($nssep !== false) {
+            $this->namespace = substr($class, 0, $nssep);
+            $class = substr($class, $nssep + 1);
+        } else {
+            $this->namespace = '';
+        }
+        $this->class = $class;
 
-    protected function save()
-    {
         fwrite($this->file, "<?php\n\n");
 
         if (!empty($this->namespace)) {
@@ -106,6 +97,11 @@ class Builder
         fclose($this->file);
     }
 
+    protected function getClassColumnByType($type)
+    {
+        return isset($this->classColumnByType[$type]) ? $this->classColumnByType[$type] : $this->classColumn;
+    }
+
     protected function renderSchema()
     {
         fwrite($this->file, "/**\n");
@@ -126,7 +122,7 @@ class Builder
         if (!empty($this->schema)) {
             fwrite($this->file, "\n");
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, "    protected \$class_{$table} = '\\\\{$this->namespace}\\\\Table_{$table}';\n");
+                fwrite($this->file, "    public \$class_{$table} = '\\\\{$this->namespace}\\\\Table_{$table}';\n");
             }
         }
         fwrite($this->file, "}\n\n");
@@ -170,7 +166,7 @@ class Builder
                 fwrite($this->file, "        '$rtable' => '$fkey',\n");
             }
             fwrite($this->file, "    ];\n");
-            fwrite($this->file, "    public \$rfkey = [\n");
+            fwrite($this->file, "    public \$rtable = [\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
                 fwrite($this->file, "        '$fkey' => '$rtable',\n");
             }
@@ -184,7 +180,7 @@ class Builder
             fwrite($this->file, "    ];\n");
         }
         fwrite($this->file, "\n");
-        fwrite($this->file, "    protected \$class_row = '\\\\{$this->namespace}\\\\Row_{$table}';\n");
+        fwrite($this->file, "    public \$class_row = '\\\\{$this->namespace}\\\\Row_{$table}';\n");
         fwrite($this->file, "\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -296,10 +292,11 @@ class Builder
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Statement_{$table} extends \\{$this->currNamespace}\\Statement {}\n\n");
+        $namespace = __NAMESPACE__;
+        fwrite($this->file, "class Statement_{$table} extends \\{$namespace}\\Statement {}\n\n");
     }
 
-    protected function read($sql)
+    public function readSQL($sql)
     {
         $this->schema = [];
         $prefixLength = strlen($this->prefix);

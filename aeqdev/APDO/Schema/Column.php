@@ -113,11 +113,11 @@ class Column
      */
     function emptySkip()
     {
-        return $this->addValidator(function($value)
+        return $this->addValidator(function($value, $row)
         {
             if (empty($value))
             {
-                throw new ColumnSkipException();
+                throw new ColumnSkipException($row, $this);
             }
             return $value;
         });
@@ -130,7 +130,7 @@ class Column
     {
         return $this->addValidator(function($value, $row)
         {
-            $rtable = $this->table->rfkey[$this->name];
+            $rtable = $this->table->rtable[$this->name];
             return isset($row->{$rtable}) ? $row->{$rtable}->pkey() : $value;
         });
     }
@@ -160,3 +160,4 @@ class ColumnValidatorException extends \Exception
 }
 
 class ColumnRequiredException extends ColumnValidatorException {}
+class ColumnSkipException extends ColumnValidatorException {}

@@ -25,7 +25,8 @@ class Statement extends \aeqdev\APDOStatement
     {
         $this->schemaTable = $table;
         return $this->table($table->schema->prefix . $table->name)
-            ->pkey($table->pkey);
+            ->pkey($table->pkey)
+            ->fetchMode(\PDO::FETCH_CLASS, $table->class_row, [$table]);
     }
 
     public function refs(&$data)

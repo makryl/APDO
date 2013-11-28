@@ -96,23 +96,23 @@ class Row
             }
         }
         if (!empty($exceptions)) {
-            throw new RowValidateException($exceptions);
+            throw new RowValidateException($this, $exceptions);
         }
         return $this->values;
     }
 
 }
 
-class ColumnSkipException extends \Exception {}
-
 class RowValidateException extends \Exception
 {
 
+    public $row;
     public $exceptions;
 
-    public function __construct($exceptions, $message = null, $code = 0, $previous = null)
+    public function __construct(Row $row, $exceptions, $message = null, $code = 0, $previous = null)
     {
         parent::__construct($message, $code, $previous);
+        $this->row = $row;
         $this->exceptions = $exceptions;
     }
 

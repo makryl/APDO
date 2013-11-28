@@ -27,12 +27,13 @@ class Table
     public $schema;
 
     public $name;
+    public $cols;
     public $pkey;
     public $ukey;
     public $fkey;
-    public $cols;
+    public $rtable;
+    public $class_row;
 
-    protected $class_row;
     protected $columns;
 
     public function __construct(Schema $schema)
@@ -53,10 +54,9 @@ class Table
         }
     }
 
-    public function statement() {
-        return $this->schema->statement()
-            ->schemaTable($this)
-            ->fetchMode(\PDO::FETCH_CLASS, $this->class_row, [$this]);
+    public function statement()
+    {
+        return $this->schema->statement()->schemaTable($this);
     }
 
     public function create()
