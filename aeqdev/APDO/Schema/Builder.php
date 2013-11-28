@@ -286,7 +286,9 @@ class Builder
                 'handler',
                 'referrers',
                 'references',
+                'referrersUnique',
                 'referencesUnique',
+                'refs',
             ] as $method) {
                 fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} $method\n");
             }
