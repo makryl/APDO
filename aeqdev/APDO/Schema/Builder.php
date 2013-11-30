@@ -310,7 +310,7 @@ class Builder
         $sql = preg_replace('/--.*$/', '', $sql);
 
         #statements
-        foreach (explode(';', file_get_contents('db.sql')) as $st) {
+        foreach (explode(';', $sql) as $st) {
 
             # create table
             if (!preg_match('/create\s+table\s+(\w+)\s*\((.*)\)/is', $st, $m)) {
