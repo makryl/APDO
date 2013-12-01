@@ -2,19 +2,19 @@
 
 namespace aeqdev\APDO\Schema;
 
-require_once '../aeqdev/APDO.php';
-require_once '../aeqdev/APDO/Schema.php';
-require_once '../aeqdev/APDO/Schema/Table.php';
-require_once '../aeqdev/APDO/Schema/Statement.php';
-require_once '../aeqdev/APDO/Schema/Row.php';
-require_once '../aeqdev/APDO/Schema/Column.php';
-require_once '../aeqdev/APDO/Schema/Column/Time.php';
-require_once '../aeqdev/APDO/Schema/Column/Date.php';
-require_once '../aeqdev/APDO/Schema/Column/Bool.php';
-require_once '../aeqdev/APDO/Schema/Column/Int.php';
-require_once '../aeqdev/APDO/Schema/Column/Float.php';
-require_once '../aeqdev/APDO/Schema/Column/String.php';
-require_once 'Schema.php';
+require_once __DIR__ . '/../../../aeqdev/APDO.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Table.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Statement.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Row.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Time.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Date.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Bool.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Int.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Float.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/String.php';
+require_once __DIR__ . '/Schema.php';
 
 class APDOTest extends \PHPUnit_Framework_TestCase
 {
@@ -31,7 +31,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ]);
 
-        foreach (explode(';', file_get_contents('Schema.sql')) as $statement) {
+        foreach (explode(';', file_get_contents(__DIR__ . '/Schema.sql')) as $statement) {
             if (trim($statement) != '') {
                 $this->object->statement($statement)->execute();
             }
@@ -137,7 +137,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     public function testRowCallRefs()
     {
         $tree = $this->object->tree->get(1);
-        
+
         $this->assertEquals(10, $tree->tree_extra()->height);
 
         $fruits = $tree->fruit();

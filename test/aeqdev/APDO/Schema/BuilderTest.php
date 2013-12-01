@@ -2,7 +2,7 @@
 
 namespace aeqdev\APDO\Schema;
 
-require_once '../aeqdev/APDO/Schema/Builder.php';
+require_once __DIR__ . '/../../../../aeqdev/APDO/Schema/Builder.php';
 
 class BuilderMock extends Builder
 {
@@ -22,27 +22,17 @@ class BuilderTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->unlinkTmpFiles();
-
         $this->object = new BuilderMock();
         $this->object->prefix = 'apdo_test_';
     }
 
     protected function tearDown()
     {
-        $this->unlinkTmpFiles();
-    }
-
-    protected function unlinkTmpFiles()
-    {
-        if (file_exists('SchemaActual.php')) {
-            unlink('SchemaActual.php');
-        }
     }
 
     public function testRead()
     {
-        $this->object->read('Schema.sql');
+        $this->object->read(__DIR__ . '/../Schema.sql');
         $this->assertEquals([
             'tree' =>
             [
@@ -144,10 +134,11 @@ class BuilderTest extends \PHPUnit_Framework_TestCase
 
     public function testSave()
     {
-        $this->object->read('Schema.sql');
-        $this->object->save('SchemaActual.php', '\\test\\Schema');
-
-        $this->assertFileEquals('Schema.php', 'SchemaActual.php');
+        $this->object->read(__DIR__ . '/../Schema.sql');
+        $tmpname = tempnam(null, 'apdo_test_');
+        $this->object->save($tmpname, '\\test\\Schema');
+        $this->assertFileEquals(__DIR__ . '/../Schema.php', $tmpname);
+        unlink($tmpname);
     }
 
 }

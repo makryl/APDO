@@ -2,9 +2,9 @@
 
 namespace aeqdev;
 
-require '../aeqdev/APDO.php';
-require '../aeqdev/APDO/ICache.php';
-require '../aeqdev/APDO/ArrayCache.php';
+require_once __DIR__ . '/../../aeqdev/APDO.php';
+require_once __DIR__ . '/../../aeqdev/APDO/ICache.php';
+require_once __DIR__ . '/../../aeqdev/APDO/ArrayCache.php';
 
 
 
@@ -28,7 +28,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ]);
 
-        foreach (explode(';', file_get_contents('Schema.sql')) as $statement) {
+        foreach (explode(';', file_get_contents(__DIR__ . '/APDO/Schema.sql')) as $statement) {
             if (trim($statement) != '') {
                 $this->object->statement($statement)->execute();
             }
