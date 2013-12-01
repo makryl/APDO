@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.1
+ * v 0.2
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -14,7 +14,7 @@
 namespace aeqdev\APDO\Schema;
 
 /**
- *
+ * Builds schema from SQL string or file.
  */
 class Builder
 {
@@ -51,11 +51,22 @@ class Builder
         ];
     }
 
+    /**
+     * Reads SQL file.
+     *
+     * @param string $file File name to read.
+     */
     public function read($file)
     {
         $this->readSQL(file_get_contents($file));
     }
 
+    /**
+     * Saves schema into file.
+     *
+     * @param string $file File name to write.
+     * @param string $class Schema class name (with namespace if needed).
+     */
     public function save($file, $class)
     {
         $this->file = fopen($file, 'w');
@@ -109,7 +120,7 @@ class Builder
             foreach ($this->schema as $table => $tdata) {
                 fwrite($this->file, " * @property \\{$this->namespace}\\Table_{$table} \${$table}\n");
             }
-            fwrite($this->file, "\n");
+            fwrite($this->file, " *\n");
             foreach ($this->schema as $table => $tdata) {
                 fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} {$table}()\n");
             }
@@ -208,15 +219,15 @@ class Builder
     protected function renderRow($table, $tdata)
     {
         fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Table_{$table} table()\n");
+        fwrite($this->file, " * @property \\{$this->namespace}\\Table_{$table} \$table\n");
         if (!empty($tdata['fkey'])) {
-            fwrite($this->file, "\n");
+            fwrite($this->file, " *\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
                 fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}()\n");
             }
         }
         if (!empty($tdata['refs'])) {
-            fwrite($this->file, "\n");
+            fwrite($this->file, " *\n");
             foreach ($tdata['refs'] as $rtable) {
                 if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
                     fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}()\n");
@@ -298,6 +309,11 @@ class Builder
         fwrite($this->file, "class Statement_{$table} extends \\{$namespace}\\Statement {}\n\n");
     }
 
+    /**
+     * Reads schema from SQL string.
+     *
+     * @param string $sql String of SQL statements to read.
+     */
     public function readSQL($sql)
     {
         $this->schema = [];

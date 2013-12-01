@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.1
+ * v 0.2
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -14,19 +14,26 @@
 namespace aeqdev\APDO\Schema;
 
 /**
- *
+ * Schema column object.
+ * Contains validators for table column and performs validation of rows.
  */
 class Column
 {
 
     /**
-     * @var Table
+     * @var \aeqdev\APDO\Schema\Table
      */
     public $table;
     public $name;
 
     protected $validators = [];
 
+    /**
+     * Executes all validators on column value of specified row and returns result.
+     *
+     * @param \aeqdev\APDO\Schema\Row $row Row to extract raw value from.
+     * @return mixed Valid value.
+     */
     public function value(Row $row)
     {
         $value = $row->{$this->name};
@@ -37,8 +44,10 @@ class Column
     }
 
     /**
-     * @param \callback $callback
-     * @return \static
+     * Adds validator to the column.
+     *
+     * @param \callback $callback Validator function ($value, $row, $column)
+     * @return \static Current column.
      */
     public function addValidator($callback)
     {
@@ -47,7 +56,12 @@ class Column
     }
 
     /**
-     * @return \static
+     * Adds filter_var validator to the column.
+     * See http://php.net/manual/function.filter-var.php for details.
+     *
+     * @param int $filter Filter ID. Use FILTER_* constants.
+     * @param int|array $options Filter options.
+     * @return \static Current column.
      */
     public function filter($filter, $options = null)
     {
@@ -65,8 +79,15 @@ class Column
     public static $filter_error_message;
 
     /**
-     * @throws StringEmailException
-     * @return \static
+     * Adds filter_var validator to the column.
+     * Throws exception if validation fails.
+     * See http://php.net/manual/function.filter-var.php for details.
+     *
+     * @param int $filter Filter ID. Use FILTER_* constants.
+     * @param int|array $options Filter options.
+     * @param string $error_message Error message on validation fail.
+     * @throws \aeqdev\APDO\Schema\ColumnValidatorException
+     * @return \static Current column.
      */
     public function filterStrict($filter, $options = null, $error_message = null)
     {
@@ -91,7 +112,11 @@ class Column
     }
 
     /**
-     * @return \static
+     * Adds required filter to the column.
+     * Throws exception if value is empty and not integer 0, not float 0 and not boolean false.
+     *
+     * @throws \aeqdev\APDO\Schema\ColumnRequiredException
+     * @return \static Current column.
      */
     public function required()
     {
@@ -109,7 +134,11 @@ class Column
     }
 
     /**
-     * @return \static
+     * Adds filter to the column, that throws skip exception for empty values.
+     * Skipped columns will not passed to validated values.
+     *
+     * @throws \aeqdev\APDO\Schema\ColumnSkipException
+     * @return \static Current column.
      */
     function emptySkip()
     {
@@ -124,7 +153,30 @@ class Column
     }
 
     /**
-     * @return \static
+     * Adds filter to the column, that throws skip exception for null values.
+     * Skipped columns will not passed to validated values.
+     *
+     * @throws \aeqdev\APDO\Schema\ColumnSkipException
+     * @return \static Current column.
+     */
+    function nullSkip()
+    {
+        return $this->addValidator(function($value, $row)
+        {
+            if (!isset($value))
+            {
+                throw new ColumnSkipException($row, $this);
+            }
+            return $value;
+        });
+    }
+
+    /**
+     * Adds foreign key filter to the column.
+     * This filter sets value of foreign key column from primary key of referenced data.
+     * If referenced data not exists, column value used.
+     *
+     * @return \static Current column.
      */
     function fkey()
     {
@@ -137,6 +189,10 @@ class Column
 
 }
 
+/**
+ * Column validation exception.
+ * Contains row and column objects.
+ */
 class ColumnValidatorException extends \Exception
 {
 

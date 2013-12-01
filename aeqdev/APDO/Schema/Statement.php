@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.1
+ * v 0.2
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -14,13 +14,22 @@
 namespace aeqdev\APDO\Schema;
 
 /**
- *
+ * Schema statement can set schema table parameters and work with schema table references.
  */
 class Statement extends \aeqdev\APDOStatement
 {
 
+    /**
+     * @var \aeqdev\APDO\Schema\Table
+     */
     protected $schemaTable;
 
+    /**
+     * Sets schema table for the statement.
+     *
+     * @param \aeqdev\APDO\Schema\Table $table Schema table.
+     * @return \aeqdev\APDO\Schema\Statement Current statement.
+     */
     public function schemaTable(Table $table)
     {
         $this->schemaTable = $table;
@@ -29,15 +38,25 @@ class Statement extends \aeqdev\APDOStatement
             ->fetchMode(\PDO::FETCH_CLASS, $table->class_row, [$table]);
     }
 
+    /**
+     * Adds conditions to SELECT statement for selecting referenced data.
+     * This method chooses appropriate APDOStatement method
+     * (one of: referrers, referrersUnique, references, referencesUnique)
+     * using data passed in argument and foreign keys of tables.
+     *
+     * @param array|object $data Data.
+     * @return null|\aeqdev\APDO\Schema\Statement Current statement or null if no foreign keys found.
+     */
     public function refs(&$data)
     {
         if (empty($data)) {
             return $this->nothing();
         }
 
+        /* @var $itemTable \aeqdev\APDO\Schema\Table */
         $itemTable = is_array($data)
-            ? reset($data)->table()
-            : $data->table();
+            ? reset($data)->table
+            : $data->table;
 
         if (isset($itemTable->fkey[$this->schemaTable->name])) {
             return $this->referrers(

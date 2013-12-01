@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.1
+ * v 0.2
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -14,7 +14,8 @@
 namespace aeqdev\APDO\Schema\Column;
 
 /**
- *
+ * Float column.
+ * Adds FILTER_VALIDATE_FLOAT filter.
  */
 class Float extends \aeqdev\APDO\Schema\Column
 {

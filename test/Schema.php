@@ -6,7 +6,7 @@ namespace test;
  * @property \test\Table_tree $tree
  * @property \test\Table_tree_extra $tree_extra
  * @property \test\Table_fruit $fruit
-
+ *
  * @method \test\Statement_tree tree()
  * @method \test\Statement_tree_extra tree_extra()
  * @method \test\Statement_fruit fruit()
@@ -45,8 +45,8 @@ class Table_tree extends \aeqdev\APDO\Schema\Table
 }
 
 /**
- * @method \test\Table_tree table()
-
+ * @property \test\Table_tree $table
+ *
  * @method \test\Row_tree_extra tree_extra()
  * @method \test\Row_fruit[] fruit()
  */
@@ -98,8 +98,8 @@ class Table_tree_extra extends \aeqdev\APDO\Schema\Table
 }
 
 /**
- * @method \test\Table_tree_extra table()
-
+ * @property \test\Table_tree_extra $table
+ *
  * @method \test\Row_tree tree()
  */
 class Row_tree_extra extends \aeqdev\APDO\Schema\Row
@@ -149,8 +149,8 @@ class Table_fruit extends \aeqdev\APDO\Schema\Table
 }
 
 /**
- * @method \test\Table_fruit table()
-
+ * @property \test\Table_fruit $table
+ *
  * @method \test\Row_tree tree()
  */
 class Row_fruit extends \aeqdev\APDO\Schema\Row
