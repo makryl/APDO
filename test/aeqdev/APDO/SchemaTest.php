@@ -140,9 +140,18 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals(10, $tree->tree_extra()->height);
 
-        $fruits = $tree->fruit();
+        $fruits = $tree->fruit()->fetchAll();
         $this->assertEquals('apple1', $fruits[0]->name);
         $this->assertEquals('apple2', $fruits[1]->name);
+    }
+
+    public function testStatementCall()
+    {
+        $fruits = $this->object->tree()->fruit()->fetchAll();
+
+        $this->assertEquals('apple1', $fruits[0]->name);
+        $this->assertEquals('apple2', $fruits[1]->name);
+        $this->assertEquals('orange', $fruits[2]->name);
     }
 
 }

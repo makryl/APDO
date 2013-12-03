@@ -122,7 +122,7 @@ class Builder
             }
             fwrite($this->file, " *\n");
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} {$table}()\n");
+                fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} {$table}\n");
             }
         }
         fwrite($this->file, " */\n");
@@ -144,13 +144,13 @@ class Builder
         fwrite($this->file, "/**\n");
         fwrite($this->file, " * @property \\{$this->namespace}\\{$this->class} \$schema\n");
         fwrite($this->file, " *\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} create()\n");
-        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} get(\$id)\n");
+        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} create\n");
+        fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$table} get\n");
         if (!empty($tdata['cols'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['cols'] as $col => $cdata) {
                 $cclass = $this->getClassColumnByType($cdata['type']);
-                fwrite($this->file, " * @method $cclass $col()\n");
+                fwrite($this->file, " * @method $cclass $col\n");
             }
         }
         fwrite($this->file, " */\n");
@@ -223,16 +223,16 @@ class Builder
         if (!empty($tdata['fkey'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}()\n");
+                fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}\n");
             }
         }
         if (!empty($tdata['refs'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['refs'] as $rtable) {
                 if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}()\n");
+                    fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable} {$rtable}\n");
                 } else {
-                    fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable}[] {$rtable}()\n");
+                    fwrite($this->file, " * @method \\{$this->namespace}\\Row_{$rtable}[] {$rtable}\n");
                 }
             }
         }
@@ -302,6 +302,22 @@ class Builder
                 'refs',
             ] as $method) {
                 fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$table} $method\n");
+            }
+        }
+        if (!empty($tdata['fkey'])) {
+            fwrite($this->file, " *\n");
+            foreach ($tdata['fkey'] as $rtable => $fkey) {
+                fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$rtable} {$rtable}\n");
+            }
+        }
+        if (!empty($tdata['refs'])) {
+            fwrite($this->file, " *\n");
+            foreach ($tdata['refs'] as $rtable) {
+                if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
+                    fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$rtable} {$rtable}\n");
+                } else {
+                    fwrite($this->file, " * @method \\{$this->namespace}\\Statement_{$rtable}[] {$rtable}\n");
+                }
             }
         }
         fwrite($this->file, " */\n");

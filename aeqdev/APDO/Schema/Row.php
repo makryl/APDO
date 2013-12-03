@@ -42,9 +42,9 @@ class Row
      * If column with specified name exists, returns validated value of that column.
      * Otherwise, tries to perform appropriate refs selection.
      *
-     * @param type $name
+     * @param string $name
      * @param null $args
-     * @return type
+     * @return \aeqdev\APDO\Schema\Row|\aeqdev\APDO\Schema\Statement
      */
     public function __call($name, $args)
     {
@@ -58,7 +58,7 @@ class Row
 
             return isset($refTable->fkey[$this->table->name])
                 && !isset($refTable->ukey[$refTable->fkey[$this->table->name]])
-                ? $statement->fetchAll()
+                ? $statement
                 : $statement->fetchOne();
         }
     }

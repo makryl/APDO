@@ -7,9 +7,9 @@ namespace test;
  * @property \test\Table_tree_extra $tree_extra
  * @property \test\Table_fruit $fruit
  *
- * @method \test\Statement_tree tree()
- * @method \test\Statement_tree_extra tree_extra()
- * @method \test\Statement_fruit fruit()
+ * @method \test\Statement_tree tree
+ * @method \test\Statement_tree_extra tree_extra
+ * @method \test\Statement_fruit fruit
  */
 class Schema extends \aeqdev\APDO\Schema
 {
@@ -23,11 +23,11 @@ class Schema extends \aeqdev\APDO\Schema
 /**
  * @property \test\Schema $schema
  *
- * @method \test\Row_tree create()
- * @method \test\Row_tree get($id)
+ * @method \test\Row_tree create
+ * @method \test\Row_tree get
  *
- * @method \aeqdev\APDO\Schema\Column\Int id()
- * @method \aeqdev\APDO\Schema\Column\String name()
+ * @method \aeqdev\APDO\Schema\Column\Int id
+ * @method \aeqdev\APDO\Schema\Column\String name
  */
 class Table_tree extends \aeqdev\APDO\Schema\Table
 {
@@ -47,8 +47,8 @@ class Table_tree extends \aeqdev\APDO\Schema\Table
 /**
  * @property \test\Table_tree $table
  *
- * @method \test\Row_tree_extra tree_extra()
- * @method \test\Row_fruit[] fruit()
+ * @method \test\Row_tree_extra tree_extra
+ * @method \test\Row_fruit[] fruit
  */
 class Row_tree extends \aeqdev\APDO\Schema\Row
 {
@@ -64,12 +64,12 @@ class Row_tree extends \aeqdev\APDO\Schema\Row
 /**
  * @property \test\Schema $schema
  *
- * @method \test\Row_tree_extra create()
- * @method \test\Row_tree_extra get($id)
+ * @method \test\Row_tree_extra create
+ * @method \test\Row_tree_extra get
  *
- * @method \aeqdev\APDO\Schema\Column\Int id()
- * @method \aeqdev\APDO\Schema\Column\Int height()
- * @method \aeqdev\APDO\Schema\Column\Int tree_id()
+ * @method \aeqdev\APDO\Schema\Column\Int id
+ * @method \aeqdev\APDO\Schema\Column\Int height
+ * @method \aeqdev\APDO\Schema\Column\Int tree_id
  */
 class Table_tree_extra extends \aeqdev\APDO\Schema\Table
 {
@@ -100,7 +100,7 @@ class Table_tree_extra extends \aeqdev\APDO\Schema\Table
 /**
  * @property \test\Table_tree_extra $table
  *
- * @method \test\Row_tree tree()
+ * @method \test\Row_tree tree
  */
 class Row_tree_extra extends \aeqdev\APDO\Schema\Row
 {
@@ -115,13 +115,13 @@ class Row_tree_extra extends \aeqdev\APDO\Schema\Row
 /**
  * @property \test\Schema $schema
  *
- * @method \test\Row_fruit create()
- * @method \test\Row_fruit get($id)
+ * @method \test\Row_fruit create
+ * @method \test\Row_fruit get
  *
- * @method \aeqdev\APDO\Schema\Column\Int id()
- * @method \aeqdev\APDO\Schema\Column\String name()
- * @method \aeqdev\APDO\Schema\Column\String color()
- * @method \aeqdev\APDO\Schema\Column\Int tree_id()
+ * @method \aeqdev\APDO\Schema\Column\Int id
+ * @method \aeqdev\APDO\Schema\Column\String name
+ * @method \aeqdev\APDO\Schema\Column\String color
+ * @method \aeqdev\APDO\Schema\Column\Int tree_id
  */
 class Table_fruit extends \aeqdev\APDO\Schema\Table
 {
@@ -151,7 +151,7 @@ class Table_fruit extends \aeqdev\APDO\Schema\Table
 /**
  * @property \test\Table_fruit $table
  *
- * @method \test\Row_tree tree()
+ * @method \test\Row_tree tree
  */
 class Row_fruit extends \aeqdev\APDO\Schema\Row
 {
@@ -194,6 +194,9 @@ class Row_fruit extends \aeqdev\APDO\Schema\Row
  * @method \test\Statement_tree referrersUnique
  * @method \test\Statement_tree referencesUnique
  * @method \test\Statement_tree refs
+ *
+ * @method \test\Statement_tree_extra tree_extra
+ * @method \test\Statement_fruit[] fruit
  */
 class Statement_tree extends \aeqdev\APDO\Schema\Statement {}
 
@@ -227,6 +230,8 @@ class Statement_tree extends \aeqdev\APDO\Schema\Statement {}
  * @method \test\Statement_tree_extra referrersUnique
  * @method \test\Statement_tree_extra referencesUnique
  * @method \test\Statement_tree_extra refs
+ *
+ * @method \test\Statement_tree tree
  */
 class Statement_tree_extra extends \aeqdev\APDO\Schema\Statement {}
 
@@ -260,6 +265,8 @@ class Statement_tree_extra extends \aeqdev\APDO\Schema\Statement {}
  * @method \test\Statement_fruit referrersUnique
  * @method \test\Statement_fruit referencesUnique
  * @method \test\Statement_fruit refs
+ *
+ * @method \test\Statement_tree tree
  */
 class Statement_fruit extends \aeqdev\APDO\Schema\Statement {}
 

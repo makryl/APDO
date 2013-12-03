@@ -51,12 +51,16 @@ class Statement extends \aeqdev\APDOStatement
     {
         if (empty($data)) {
             return $this->nothing();
+        } else if ($data instanceof Row) {
+            $itemTable = $data->table;
+        } else {
+            $item = reset($data);
+            if ($item instanceof Row) {
+                $itemTable = $item->table;
+            } else {
+                return $this->nothing();
+            }
         }
-
-        /* @var $itemTable \aeqdev\APDO\Schema\Table */
-        $itemTable = is_array($data)
-            ? reset($data)->table
-            : $data->table;
 
         if (isset($itemTable->fkey[$this->schemaTable->name])) {
             return $this->referrers(
@@ -77,6 +81,20 @@ class Statement extends \aeqdev\APDOStatement
                 isset($this->schemaTable->ukey[$this->schemaTable->fkey[$itemTable->name]])
             );
         }
+    }
+
+    /**
+     * Creates statement on specified table with refs conditions,
+     * using data fetched from the current statement.
+     *
+     * @param string $name
+     * @param null $args
+     * @return \aeqdev\APDO\Schema\Statement
+     */
+    public function __call($name, $args)
+    {
+        $r = $this->fetchAll();
+        return $this->schemaTable->schema->{$name}()->refs($r);
     }
 
 }
