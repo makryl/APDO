@@ -14,9 +14,9 @@
 namespace aeqdev\APDO\Schema;
 
 /**
- * Builds schema from SQL string or file.
+ * Imports schema from SQL string or file.
  */
-class Builder
+class Importer
 {
 
     public $prefix = '';
@@ -45,10 +45,18 @@ class Builder
             'float'  => $this->classColumn . '\\Float',
             'bool'   => $this->classColumn . '\\Bool',
             'string' => $this->classColumn . '\\String',
-            'text'   => $this->classColumn . '\\String',
+            'text'   => $this->classColumn . '\\Text',
             'time'   => $this->classColumn . '\\Time',
             'date'   => $this->classColumn . '\\Date',
         ];
+    }
+
+    /**
+     * @return array Schema in internal format.
+     */
+    public function getSchema()
+    {
+        return $this->schema;
     }
 
     /**
@@ -341,6 +349,8 @@ class Builder
         # comments
         $sql = preg_replace('/--.*$/', '', $sql);
 
+        $sql = trim($sql);
+
         #statements
         foreach (explode(';', $sql) as $st) {
 
@@ -383,8 +393,8 @@ class Builder
                     $col = [];
 
                     # column type
-                    if (preg_match('/(bool|char|text|blob|time|date|int|float|real|double|decimal)/', $cdef, $m)) {
-                        switch ($m[1]) {
+                    if (preg_match('/(bool|char|text|blob|time|date|int|float|real|double|decimal)/i', $cdef, $m)) {
+                        switch (strtolower($m[1])) {
                             case    'bool': $col['type'] = 'bool';   break;
                             case    'char': $col['type'] = 'string'; break;
                             case    'text': $col['type'] = 'text';   break;

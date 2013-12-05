@@ -25,6 +25,7 @@ class Column
      */
     public $table;
     public $name;
+    public $null = true;
 
     protected $validators = [];
 
@@ -120,6 +121,8 @@ class Column
      */
     public function required()
     {
+        $this->null = false;
+        
         return $this->addValidator(function ($value, $row) {
             if (
                 empty($value)

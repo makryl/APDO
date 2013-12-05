@@ -31,7 +31,11 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ]);
 
-        foreach (explode(';', file_get_contents(__DIR__ . '/Schema.sql')) as $statement) {
+        $sql = file_get_contents(__DIR__ . '/Schema-drop.sql')
+            . file_get_contents(__DIR__ . '/Schema.sql')
+            . file_get_contents(__DIR__ . '/Schema-insert.sql');
+
+        foreach (explode(';', $sql) as $statement) {
             if (trim($statement) != '') {
                 $this->object->statement($statement)->execute();
             }
@@ -41,9 +45,13 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         if (isset($this->object)) {
-            $this->object->statement('DROP TABLE IF EXISTS apdo_test_fruit')->execute();
-            $this->object->statement('DROP TABLE IF EXISTS apdo_test_tree_extra')->execute();
-            $this->object->statement('DROP TABLE IF EXISTS apdo_test_tree')->execute();
+            $sql = file_get_contents(__DIR__ . '/Schema-drop.sql');
+
+            foreach (explode(';', $sql) as $statement) {
+                if (trim($statement) != '') {
+                    $this->object->statement($statement)->execute();
+                }
+            }
         }
     }
 

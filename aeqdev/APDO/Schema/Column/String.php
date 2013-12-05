@@ -21,6 +21,8 @@ namespace aeqdev\APDO\Schema\Column;
 class String extends \aeqdev\APDO\Schema\Column
 {
 
+    public $length;
+
     public function __construct()
     {
         $this->addValidator(function($value) {
@@ -40,6 +42,8 @@ class String extends \aeqdev\APDO\Schema\Column
      */
     public function length($length)
     {
+        $this->length = $length;
+        
         return $this->addValidator(function($value) use ($length) {
             if (isset($value)) {
                 $value = mb_substr($value, 0, $length);
