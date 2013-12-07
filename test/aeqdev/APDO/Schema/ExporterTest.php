@@ -38,7 +38,7 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
         $this->object->pkeyAutoIncrement = true;
 
         $this->schemaInternal = include __DIR__ . '/../SchemaInternal.php';
-        
+
         $this->schema = new \test\Schema('mysql:host=localhost;dbname=test', 'root', 'root', [
             \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
@@ -59,6 +59,13 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
     {
         $this->object->readSchema($this->schema);
         $this->assertEquals(file_get_contents(__DIR__ . '/../Schema.sql'), $this->object->getFullSQL());
+    }
+
+    public function testGetDiffSQL()
+    {
+        $this->object->readSchema($this->schema);
+        $this->object->compareWithSQLFile(__DIR__ . '/../Schema-compare.sql');
+        $this->assertEquals(file_get_contents(__DIR__ . '/../Schema-diff.sql'), $this->object->getDiffSQL());
     }
 
 }
