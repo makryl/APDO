@@ -87,6 +87,7 @@ class Exporter
     public function compareWithSQL($sql)
     {
         $importer = new Importer();
+        $importer->prefix = $this->readSchema->prefix;
         $importer->readSQL($sql);
         $this->compare = $importer->getSchema();
     }
@@ -94,6 +95,7 @@ class Exporter
     public function compareWithSQLFile($file)
     {
         $importer = new Importer();
+        $importer->prefix = $this->readSchema->prefix;
         $importer->read($file);
         $this->compare = $importer->getSchema();
     }
@@ -238,18 +240,50 @@ class Exporter
         $this->sql = '';
         $tablePrefix = $this->readSchema->prefix;
         $cmt = $withDrops ? '' : '-- ';
+        $suffix = ";\n\n";
 
-        foreach ($this->schema as $tname => $tdata) {
-            if (isset($this->compare[$tname])) {
-                $prefix = "ALTER TABLE {$tablePrefix}$tname ADD ";
-                $suffix = ";\n\n";
+        foreach ($this->compare as $tname => $tdata) {
+            if (isset($this->schema[$tname])) {
+                $ctdata = $this->schema[$tname];
+                $prefix = "{$cmt}ALTER TABLE {$tablePrefix}$tname DROP ";
 
                 if (!empty($tdata['cols'])) {
                     foreach ($tdata['cols'] as $cname => $cdata) {
-                        if (isset($this->compare[$tname]['cols'][$cname])) {
-                            if ($cdata != $this->compare[$tname]['cols'][$cname]) {
-                                $prefixPkey = "ALTER TABLE {$tablePrefix}$tname MODIFY ";
-                                $this->renderCol($cname, $cdata, $tdata, $prefix, $suffix);
+                        if (!isset($ctdata['cols'][$cname])) {
+                            $this->sql .= $prefix . $cname . $suffix;
+                        }
+                    }
+                }
+
+                if (!empty($tdata['ukey'])) {
+                    foreach ($tdata['ukey'] as $ukey) {
+                        if (!isset($ctdata['ukey'][$ukey])) {
+                            $this->renderUkey($ukey, $prefix, $suffix);
+                        }
+                    }
+                }
+
+                if (!empty($tdata['pkey'])) {
+                    if (!isset($ctdata['pkey'])) {
+                        $this->sql .= $prefix . 'PRIMARY KEY' . $suffix;
+                    }
+                }
+            } else {
+                $this->sql .= "{$cmt}DROP TABLE {$tablePrefix}$tname;\n\n";
+            }
+        }
+
+        foreach ($this->schema as $tname => $tdata) {
+            if (isset($this->compare[$tname])) {
+                $ctdata = $this->compare[$tname];
+                $prefix = "ALTER TABLE {$tablePrefix}$tname ADD ";
+
+                if (!empty($tdata['cols'])) {
+                    foreach ($tdata['cols'] as $cname => $cdata) {
+                        if (isset($ctdata['cols'][$cname])) {
+                            if ($cdata != $ctdata['cols'][$cname]) {
+                                $prefixPkey = "{$cmt}ALTER TABLE {$tablePrefix}$tname MODIFY ";
+                                $this->renderCol($cname, $cdata, $tdata, $prefixPkey, $suffix);
                             }
                         } else {
                             $this->renderCol($cname, $cdata, $tdata, $prefix, $suffix);
@@ -259,11 +293,9 @@ class Exporter
 
                 if (!empty($tdata['fkey'])) {
                     foreach ($tdata['fkey'] as $rtable => $fkey) {
-                        if (isset($this->compare[$tname]['fkey'][$rtable])) {
-                            $cfkey = $this->compare[$tname]['fkey'][$rtable];
+                        if (isset($ctdata['fkey'][$rtable])) {
+                            $cfkey = $ctdata['fkey'][$rtable];
                             if ($fkey != $cfkey) {
-                                $prefixDropFkey = "{$cmt}ALTER TABLE {$tablePrefix}$tname DROP ";
-                                $this->renderFkey($tablePrefix, $rtable, $cfkey, $prefixDropFkey, $suffix);
                                 $this->renderFkey($tablePrefix, $rtable, $fkey, $prefix, $suffix);
                             }
                         } else {
@@ -274,16 +306,16 @@ class Exporter
 
                 if (!empty($tdata['ukey'])) {
                     foreach ($tdata['ukey'] as $ukey) {
-                        if (!isset($this->compare[$tname]['ukey'][$ukey])) {
+                        if (!isset($ctdata['ukey'][$ukey])) {
                             $this->renderUkey($ukey, $prefix, $suffix);
                         }
                     }
                 }
 
                 if (!empty($tdata['pkey'])) {
-                    if (isset($this->compare[$tname])) {
-                        if ($tdata['pkey'] != $this->compare[$tname]['pkey']) {
-                            $prefixPkey = "ALTER TABLE {$tablePrefix}$tname DROP PRIMARY KEY, ADD ";
+                    if (isset($ctdata['pkey'])) {
+                        if ($tdata['pkey'] != $ctdata['pkey']) {
+                            $prefixPkey = "{$cmt}ALTER TABLE {$tablePrefix}$tname DROP PRIMARY KEY, ADD ";
                             $this->renderPkey($tdata, $prefixPkey, $suffix);
                         }
                     } else {
