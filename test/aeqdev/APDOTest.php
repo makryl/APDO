@@ -4,7 +4,7 @@ namespace aeqdev;
 
 require_once __DIR__ . '/../../aeqdev/APDO.php';
 require_once __DIR__ . '/../../aeqdev/APDO/ICache.php';
-require_once __DIR__ . '/../../aeqdev/APDO/ArrayCache.php';
+require_once __DIR__ . '/APDO/ArraySerializeCache.php';
 
 
 
@@ -17,7 +17,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     protected $object;
 
     /**
-     * @var APDOCacheArray
+     * @var \aeqdev\APDO\ArraySerializeCache
      */
     protected $cache;
 
@@ -38,7 +38,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             }
         }
 
-        $this->cache = new apdo\ArrayCache();
+        $this->cache = new APDO\ArraySerializeCache();
 
         $this->object->setFetchMode(\PDO::FETCH_ASSOC);
     }

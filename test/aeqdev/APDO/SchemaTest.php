@@ -3,6 +3,8 @@
 namespace aeqdev\APDO\Schema;
 
 require_once __DIR__ . '/../../../aeqdev/APDO.php';
+require_once __DIR__ . '/../../../aeqdev/APDO/ICache.php';
+require_once __DIR__ . '/ArraySerializeCache.php';
 require_once __DIR__ . '/../../../aeqdev/APDO/Schema.php';
 require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Table.php';
 require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Statement.php';
@@ -24,6 +26,11 @@ class APDOTest extends \PHPUnit_Framework_TestCase
      */
     protected $object;
 
+    /**
+     * @var \aeqdev\APDO\ArraySerializeCache
+     */
+    protected $cache;
+
     protected function setUp()
     {
         $this->object = new \test\Schema('mysql:host=localhost;dbname=test', 'root', 'root', [
@@ -40,6 +47,8 @@ class APDOTest extends \PHPUnit_Framework_TestCase
                 $this->object->statement($statement)->execute();
             }
         }
+
+        $this->cache = new \aeqdev\APDO\ArraySerializeCache();
     }
 
     protected function tearDown()
@@ -160,6 +169,31 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('apple1', $fruits[0]->name);
         $this->assertEquals('apple2', $fruits[1]->name);
         $this->assertEquals('orange', $fruits[2]->name);
+    }
+
+    public function testCache()
+    {
+        $fruits = $this->object->fruit()
+            ->cache($this->cache)
+            ->fetchAll();
+
+        $this->assertEquals('apple1', $fruits[0]->name);
+        $this->assertEquals('apple2', $fruits[1]->name);
+        $this->assertEquals('orange', $fruits[2]->name);
+
+        $executedCount = $this->object->executedCount();
+
+        $fruits = $this->object->fruit()
+            ->cache($this->cache)
+            ->fetchAll();
+
+        $this->assertEquals('apple1', $fruits[0]->name);
+        $this->assertEquals('apple2', $fruits[1]->name);
+        $this->assertEquals('orange', $fruits[2]->name);
+
+        $this->assertInstanceOf(__NAMESPACE__ . '\\Table', $fruits[0]->table);
+
+        $this->assertEquals($executedCount, $this->object->executedCount());
     }
 
 }

@@ -64,6 +64,16 @@ class Row
     }
 
     /**
+     * Allows serialize only cell values.
+     *
+     * @return array
+     */
+    public function __sleep()
+    {
+        return $this->table->cols;
+    }
+
+    /**
      * Validates and saves values into database.
      */
     public function save()

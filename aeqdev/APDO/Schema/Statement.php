@@ -97,4 +97,25 @@ class Statement extends \aeqdev\APDOStatement
         return $this->schemaTable->schema->{$name}()->refs($r);
     }
 
+    protected function cacheGetRow($id)
+    {
+        $r = parent::cacheGetRow($id);
+        if ($r instanceof Row) {
+            $r->table = $this->schemaTable;
+        }
+        return $r;
+    }
+
+    protected function cacheGetStatement($statement, $args, $fetchMode)
+    {
+        $r = parent::cacheGetStatement($statement, $args, $fetchMode);
+        if (isset($r[0]) && $r[0] instanceof Row) {
+            foreach ($r as &$row) {
+                $row->table = $this->schemaTable;
+            }
+        }
+        return $r;
+    }
+
+
 }

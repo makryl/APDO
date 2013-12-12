@@ -989,12 +989,24 @@ class APDOStatement
 
     protected function cacheSetRow($result, $fetchMode)
     {
-        if (isset($result[$this->pkey])) {
+        if (is_object($result)) {
+            if (isset($result->{$this->pkey})) {
+                $this->cache->set($this->cacheKeyRow($result->{$this->pkey}, $fetchMode), $result);
+            }
+        } else if (isset($result[$this->pkey])) {
             $this->cache->set($this->cacheKeyRow($result[$this->pkey], $fetchMode), $result);
         } else {
-            foreach ($result as $row) {
-                if (isset($row[$this->pkey])) {
-                    $this->cache->set($this->cacheKeyRow($row[$this->pkey], $fetchMode), $row);
+            if (isset($result[0]) && is_object($result[0])) {
+                foreach ($result as $row) {
+                    if (isset($row->{$this->pkey})) {
+                        $this->cache->set($this->cacheKeyRow($row->{$this->pkey}, $fetchMode), $row);
+                    }
+                }
+            } else {
+                foreach ($result as $row) {
+                    if (isset($row[$this->pkey])) {
+                        $this->cache->set($this->cacheKeyRow($row[$this->pkey], $fetchMode), $row);
+                    }
                 }
             }
         }
