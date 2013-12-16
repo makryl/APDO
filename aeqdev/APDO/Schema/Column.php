@@ -209,7 +209,7 @@ class ColumnValidatorException extends \Exception
      */
     public $column;
 
-    public function __construct(Row $row, Column $column, $message, $code, $previous)
+    public function __construct(Row $row, Column $column, $message = null, $code = 0, $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->row = $row;
