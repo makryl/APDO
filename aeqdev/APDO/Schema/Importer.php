@@ -141,8 +141,9 @@ class Importer
         }
         if (!empty($this->schema)) {
             fwrite($this->file, "\n");
+            $namespace = addslashes($this->namespace);
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, "    public \$class_{$table} = '{$this->namespace}\\Table_{$table}';\n");
+                fwrite($this->file, "    public \$class_{$table} = '{$namespace}\\\\Table_{$table}';\n");
             }
         }
         fwrite($this->file, "}\n\n");
@@ -200,7 +201,8 @@ class Importer
             fwrite($this->file, "    ];\n");
         }
         fwrite($this->file, "\n");
-        fwrite($this->file, "    public \$class_row = '{$this->namespace}\\Row_{$table}';\n");
+        $namespace = addslashes($this->namespace);
+        fwrite($this->file, "    public \$class_row = '{$namespace}\\\\Row_{$table}';\n");
         fwrite($this->file, "\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
