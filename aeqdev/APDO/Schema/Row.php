@@ -51,15 +51,17 @@ class Row
         if (isset($this->table->cols[$name])) {
             return $this->table->{$name}()->value($this);
         } else {
-            /* @var $statement \aeqdev\APDO\Schema\Statement */
-            $statement = $this->table->schema->{$name}()->refs($this);
             /* @var $refTable \aeqdev\APDO\Schema\Table */
             $refTable = $this->table->schema->{$name};
+            if (isset($refTable)) {
+                /* @var $statement \aeqdev\APDO\Schema\Statement */
+                $statement = $this->table->schema->{$name}()->refs($this);
 
-            return isset($refTable->fkey[$this->table->name])
-                && !isset($refTable->ukey[$refTable->fkey[$this->table->name]])
-                ? $statement
-                : $statement->fetchOne();
+                return isset($refTable->fkey[$this->table->name])
+                    && !isset($refTable->ukey[$refTable->fkey[$this->table->name]])
+                    ? $statement
+                    : $statement->fetchOne();
+            }
         }
     }
 
@@ -157,5 +159,14 @@ class RowValidateException extends \Exception
         $this->row = $row;
         $this->exceptions = $exceptions;
     }
+    
+    public function __toString() {
+        $s = '';
+        foreach ($this->exceptions as $e) {
+            $s .= $e;
+        }
+        return $s;
+    }
+
 
 }

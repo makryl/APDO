@@ -80,6 +80,8 @@ class Statement extends \aeqdev\APDOStatement
                 $itemTable->pkey,
                 isset($this->schemaTable->ukey[$this->schemaTable->fkey[$itemTable->name]])
             );
+        } else {
+            return $this->nothing();
         }
     }
 
@@ -93,8 +95,12 @@ class Statement extends \aeqdev\APDOStatement
      */
     public function __call($name, $args)
     {
-        $r = $this->fetchAll();
-        return $this->schemaTable->schema->{$name}()->refs($r);
+        /* @var $refTable \aeqdev\APDO\Schema\Table */
+        $refTable = $this->schemaTable->schema->{$name};
+        if (isset($refTable)) {
+            $r = $this->fetchAll();
+            return $this->schemaTable->schema->{$name}()->refs($r);
+        }
     }
 
     protected function cacheGetRow($id)

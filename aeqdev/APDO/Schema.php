@@ -35,8 +35,13 @@ class Schema extends \aeqdev\APDO
     public function __get($name)
     {
         if (!isset($this->tables[$name])) {
-            $classTable = $this->{'class_' . $name};
-            $this->tables[$name] = new $classTable($this);
+            $property = 'class_' . $name;
+            if (isset($this->{$property})) {
+                $classTable = $this->{$property};
+                $this->tables[$name] = new $classTable($this);
+            } else {
+                return null;
+            }
         }
         return $this->tables[$name];
     }
@@ -50,7 +55,9 @@ class Schema extends \aeqdev\APDO
      */
     public function __call($name, $args)
     {
-        return $this->{$name}->statement();
+        /* @var $table \aeqdev\APDO\Schema\Table */
+        $table = $this->{$name};
+        return isset($table) ? $table->statement() : null;
     }
 
     /**
