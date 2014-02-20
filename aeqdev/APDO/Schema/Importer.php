@@ -115,6 +115,7 @@ class Importer
         }
 
         fclose($this->file);
+        chmod($file, 0644);
     }
 
     protected function getClassColumnByType($type)
