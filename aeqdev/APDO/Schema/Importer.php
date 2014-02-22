@@ -2,7 +2,7 @@
 
 /*
  * http://aeqdev.com/tools/php/apdo/
- * v 0.2
+ * v 0.3
  *
  * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -411,6 +411,8 @@ class Importer
                             case  'double': $col['type'] = 'float';  break;
                             case 'decimal': $col['type'] = 'float';  break;
                         }
+                    } else {
+                        $col['type'] = 'string';
                     }
 
                     # length
