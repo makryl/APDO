@@ -43,7 +43,7 @@ class String extends \aeqdev\APDO\Schema\Column
     public function length($length)
     {
         $this->length = $length;
-        
+
         return $this->addValidator(function($value) use ($length) {
             if (isset($value)) {
                 $value = mb_substr($value, 0, $length);
@@ -147,9 +147,9 @@ class String extends \aeqdev\APDO\Schema\Column
      * @param string $error_message Error message on validation fail.
      * @return \static Current column.
      */
-    public function phone($errorMessage = null)
+    public function phone($error_message = null)
     {
-        return $this->match('/^[\d\s\+\-\,\(\)]*$/', $errorMessage);
+        return $this->match('/^[\d\s\+\-\,\(\)]*$/', $error_message);
     }
 
 }
