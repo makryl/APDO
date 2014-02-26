@@ -33,7 +33,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->object = new \test\Schema('mysql:host=localhost;dbname=test', 'root', 'root', [
+        $this->object = new \test\Schema('mysql:host=localhost;dbname=test', 'root', '', [
             \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ]);
@@ -142,6 +142,10 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals(20, $trees[1]->tree_extra->height);
         $this->assertEquals('orange', $trees[1]->fruit[0]->name);
+
+        $fruits = $this->object->fruit()->fetchAll();
+        $tree_extras = $this->object->tree_extra()->refs($fruits)->fetchAll();
+        $this->assertEquals([], $tree_extras);
     }
 
     public function testRowCallValue()

@@ -36,7 +36,7 @@ class Schema extends \aeqdev\APDO
     {
         if (!isset($this->tables[$name])) {
             $property = 'class_' . $name;
-            if (isset($this->{$property})) {
+            if (property_exists($this, $property)) {
                 $classTable = $this->{$property};
                 $this->tables[$name] = new $classTable($this);
             } else {

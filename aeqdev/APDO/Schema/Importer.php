@@ -374,7 +374,7 @@ class Importer
                     $table['pkey'] = preg_split('/,\s+/', $m[1]);
 
                 # unique key
-                } else if (preg_match('/unique\s+key\s*\((.*)\)/i', $def, $m)) {
+                } else if (preg_match('/unique\s+key\s*\w*\s*\((.*)\)/i', $def, $m)) {
                     if (strpos($m[1], ',') !== false) {
                         continue;
                     }
@@ -389,6 +389,10 @@ class Importer
                     $table['fkey'][$rtable] = $m[1];
                     $this->schema[$rtable]['refs'][$tname] = $tname;
 
+                # key
+                } else if (preg_match('/^\s*key\s+/i', $def, $m)) {
+                    continue;
+
                 # column
                 } else if (preg_match('/^\s*(\w+)\s+(.*)$/i', $def, $m)) {
                     $cname = $m[1];
@@ -396,20 +400,21 @@ class Importer
                     $col = [];
 
                     # column type
-                    if (preg_match('/(bool|char|text|blob|time|date|int|float|real|double|decimal)/i', $cdef, $m)) {
+                    if (preg_match('/(bool|char|text|blob|datetime|time|date|int|float|real|double|decimal)/i', $cdef, $m)) {
                         switch (strtolower($m[1])) {
-                            case    'bool': $col['type'] = 'bool';   break;
-                            case    'char': $col['type'] = 'string'; break;
-                            case    'text': $col['type'] = 'text';   break;
-                            case    'blob': $col['type'] = 'text';   break;
-                            case    'time': $col['type'] = 'time';   break;
-                            case    'date': $col['type'] = 'date';   break;
-                            case     'int': $col['type'] = 'int';    break;
-                            case  'serial': $col['type'] = 'int';    break;
-                            case   'float': $col['type'] = 'float';  break;
-                            case    'real': $col['type'] = 'float';  break;
-                            case  'double': $col['type'] = 'float';  break;
-                            case 'decimal': $col['type'] = 'float';  break;
+                            case     'bool': $col['type'] = 'bool';   break;
+                            case     'char': $col['type'] = 'string'; break;
+                            case     'text': $col['type'] = 'text';   break;
+                            case     'blob': $col['type'] = 'text';   break;
+                            case 'datetime': $col['type'] = 'time';   break;
+                            case     'time': $col['type'] = 'time';   break;
+                            case     'date': $col['type'] = 'date';   break;
+                            case      'int': $col['type'] = 'int';    break;
+                            case   'serial': $col['type'] = 'int';    break;
+                            case    'float': $col['type'] = 'float';  break;
+                            case     'real': $col['type'] = 'float';  break;
+                            case   'double': $col['type'] = 'float';  break;
+                            case  'decimal': $col['type'] = 'float';  break;
                         }
                     } else {
                         $col['type'] = 'string';

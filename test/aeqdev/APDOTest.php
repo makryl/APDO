@@ -23,7 +23,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->object = new APDO('mysql:host=localhost;dbname=test', 'root', 'root', [
+        $this->object = new APDO('mysql:host=localhost;dbname=test', 'root', '', [
             \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ]);
