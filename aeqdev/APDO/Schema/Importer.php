@@ -20,7 +20,7 @@ class Importer
 {
 
     public $prefix = '';
-    public $overrideStatementDocs = true;
+    public $overrideStatementDocs = false;
     public $uses;
     public $classSchema;
     public $classTable;
@@ -283,8 +283,8 @@ class Importer
         fwrite($this->file, " * @method {$this->namespace}\\Row_{$table}[] fetchAll\n");
         fwrite($this->file, " * @method {$this->namespace}\\Row_{$table}[] fetchPage\n");
         fwrite($this->file, " * @method {$this->namespace}\\Row_{$table} fetchOne\n");
-        fwrite($this->file, " *\n");
         if ($this->overrideStatementDocs) {
+            fwrite($this->file, " *\n");
             foreach ([
                 'log',
                 'cache',

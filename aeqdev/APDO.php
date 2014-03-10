@@ -328,8 +328,8 @@ class APDOStatement
      * Sets or removes logger of queries, sent to database, for the statement.
      * Logger must implements ILog interface with only one debug($msg) method.
      *
-     * @param null|ILog                     $log    Logger.
-     * @return \static                      Current statement.
+     * @param null|ILog     $log            Logger.
+     * @return static|$this|\this           Current statement.
      */
     public function log($log = null)
     {
@@ -342,8 +342,8 @@ class APDOStatement
      * Cacher must implements ICache interface with three simple methods:
      * get($name), set($name, $value) and clear().
      *
-     * @param null|ICache                   $cache  Cacher.
-     * @return \static                      Current statement.
+     * @param null|ICache   $cache          Cacher.
+     * @return static|$this|\this           Current statement.
      */
 
     public function cache($cache = null)
@@ -372,7 +372,7 @@ class APDOStatement
      * After calling this method, result will always empty array,
      * and no query will sent to database.
      *
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function nothing()
     {
@@ -384,7 +384,7 @@ class APDOStatement
      * Sets table name for the statement.
      *
      * @param string        $table          Table name.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function table($table)
     {
@@ -396,7 +396,7 @@ class APDOStatement
      * Sets primary key name for the statement.
      *
      * @param string        $name           Primary key name, or array of names for complex primary key.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function pkey($name)
     {
@@ -411,7 +411,7 @@ class APDOStatement
      * @param string $fetchMode             PDO fetch mode.
      * @param string $fetchArg              Column number or class name or object.
      * @param string $fetchCtorArgs         Constructor arguments.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function fetchMode($fetchMode, $fetchArg = null, $fetchCtorArgs = null)
     {
@@ -428,7 +428,7 @@ class APDOStatement
      * @param string        $on             Join condition.
      * @param string|array  $args           Argument or array of arguments for join conditions.
      * @param string        $joinType       Join type definition.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function join($table, $on = null, $args = null, $joinType = '')
     {
@@ -447,7 +447,7 @@ class APDOStatement
      * @param string        $table          Table name to join with.
      * @param string        $on             Join conditions.
      * @param string|array  $args           Argument or array of arguments for join conditions.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function leftJoin($table, $on = null, $args = null)
     {
@@ -465,7 +465,7 @@ class APDOStatement
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function where($where, $args = null, $or = false)
     {
@@ -488,7 +488,7 @@ class APDOStatement
      *
      * @param string        $where          Conditions.
      * @param string|array  $args           Argument or array of arguments for conditions.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function orWhere($where, $args = null)
     {
@@ -509,7 +509,7 @@ class APDOStatement
      * @param bool          $or             Append type.
      *                                      False means append with AND operator,
      *                                      true means append with OR operator.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function key($args, $name = null, $or = false)
     {
@@ -541,7 +541,7 @@ class APDOStatement
      *
      * @param string|array  $args           Value or array of values.
      * @param string|array  $name           Column name or array of column names. By default primary key name is used.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function orKey($args, $name = null)
     {
@@ -552,7 +552,7 @@ class APDOStatement
      * Sets GROUP BY section of the statement.
      *
      * @param string        $groupby        Group by definition.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function groupBy($groupby)
     {
@@ -565,7 +565,7 @@ class APDOStatement
      *
      * @param string        $having         Having definition.
      * @param string|array  $args           Argument or array of arguments for having conditions.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function having($having, $args = null)
     {
@@ -578,7 +578,7 @@ class APDOStatement
      * Sets ORDER BY section of the statement.
      *
      * @param string        $orderby        Order by definition.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function orderBy($orderby)
     {
@@ -591,7 +591,7 @@ class APDOStatement
      *
      * @param string        $column         Column name.
      * @param bool          $desc           Default false for ASC, true for DESC.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function addOrderBy($column, $desc = false)
     {
@@ -609,7 +609,7 @@ class APDOStatement
      * Sets LIMIT section of the statement.
      *
      * @param int           $limit          Limit definition.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function limit($limit)
     {
@@ -621,7 +621,7 @@ class APDOStatement
      * Sets OFFSET section of the statement.
      *
      * @param int           $offset         Offset definition.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function offset($offset)
     {
@@ -634,7 +634,7 @@ class APDOStatement
      * First argument can be string with columns list, or an array of filed names.
      *
      * @param string|array  $columns        Columns definition or array of column names.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function columns($columns)
     {
@@ -647,7 +647,7 @@ class APDOStatement
      * Handler function should have result argument and return modified result.
      *
      * @param callback      $handler        Handler function for results.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function handler($handler)
     {
@@ -1093,7 +1093,7 @@ class APDOStatement
      *                                      By default is equal to $reference.
      * @param string        $pkey           Sets primary key to the statement. Will be used in condition.
      * @param bool          $unique         Set true for one-to-one references.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function referrers(&$data, $referrer, $reference, $key = null, $pkey = null, $unique = false)
     {
@@ -1239,7 +1239,7 @@ class APDOStatement
      *                                      By default is equal to $reference.
      * @param string        $pkey           Primary key, that used to extract values for condition.
      * @param bool          $unique         Set true for one-to-one references.
-     * @return \static                      Current statement.
+     * @return static|$this|\this           Current statement.
      */
     public function references(&$data, $referrer, $reference, $key = null, $pkey = null, $unique = false)
     {

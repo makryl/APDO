@@ -28,7 +28,7 @@ class Statement extends \aeqdev\APDOStatement
      * Sets schema table for the statement.
      *
      * @param \aeqdev\APDO\Schema\Table $table Schema table.
-     * @return \aeqdev\APDO\Schema\Statement Current statement.
+     * @return static|$this|\this Current statement.
      */
     public function schemaTable(Table $table)
     {
@@ -43,9 +43,10 @@ class Statement extends \aeqdev\APDOStatement
      * This method chooses appropriate APDOStatement method
      * (one of: referrers, referrersUnique, references, referencesUnique)
      * using data passed in argument and foreign keys of tables.
+     * If no foreign key found, marks statement as "nothing".
      *
      * @param array|object $data Data.
-     * @return null|\aeqdev\APDO\Schema\Statement Current statement or null if no foreign keys found.
+     * @return static|$this|\this Current statement.
      */
     public function refs(&$data)
     {

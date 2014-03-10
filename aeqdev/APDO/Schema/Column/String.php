@@ -38,7 +38,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * Uses mb_substr function with default encoding.
      * You can set default encoding using mb_internal_encoding function or php.ini.
      *
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function length($length)
     {
@@ -58,7 +58,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * See http://us2.php.net/manual/function.strip-tags.php for details.
      *
      * @param string $allowable_tags You can use the optional second parameter to specify tags which should not be stripped.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function stripTags($allowable_tags = null)
     {
@@ -73,7 +73,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * Same as stripTags validator with list of allowable tags, defined in $simple_tags_allowable static variable.
      * By default next tags allowed: &lt;a>&lt;p>&lt;strong>&lt;em>&lt;ul>&lt;li>&lt;br>
      *
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function simpleTags()
     {
@@ -83,7 +83,7 @@ class String extends \aeqdev\APDO\Schema\Column
     /**
      * Validator sets null for empty values.
      *
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function emptyNull()
     {
@@ -98,7 +98,7 @@ class String extends \aeqdev\APDO\Schema\Column
      *
      * @param string $algo Name of selected hashing algorithm (i.e. "md5", "sha256", "haval160,4", etc..)
      * @param bool $raw When set to TRUE, outputs raw binary data. FALSE outputs lowercase hexits.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function hash($algo, $raw = false)
     {
@@ -111,7 +111,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * Adds FILTER_VALIDATE_EMAIL strict filter.
      *
      * @param string $error_message Error message on validation fail.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function email($error_message = null)
     {
@@ -122,7 +122,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * Adds FILTER_VALIDATE_IP strict filter.
      *
      * @param string $error_message Error message on validation fail.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function ip($error_message = null)
     {
@@ -134,7 +134,7 @@ class String extends \aeqdev\APDO\Schema\Column
      *
      * @param string $pattern Regular expression.
      * @param string $error_message Error message on validation fail.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function match($pattern, $error_message = null)
     {
@@ -145,7 +145,7 @@ class String extends \aeqdev\APDO\Schema\Column
      * Phone validator allows using only digits, spaces, commas, brackets and plus/minus signs.
      *
      * @param string $error_message Error message on validation fail.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function phone($error_message = null)
     {

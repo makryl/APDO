@@ -36,7 +36,7 @@ class Time extends \aeqdev\APDO\Schema\Column
     /**
      * Sets date/time format.
      *
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function format($format)
     {

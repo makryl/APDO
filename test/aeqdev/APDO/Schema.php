@@ -169,32 +169,6 @@ class Row_fruit extends \aeqdev\APDO\Schema\Row
  * @method \test\Row_tree[] fetchPage
  * @method \test\Row_tree fetchOne
  *
- * @method \test\Statement_tree log
- * @method \test\Statement_tree cache
- * @method \test\Statement_tree nothing
- * @method \test\Statement_tree table
- * @method \test\Statement_tree pkey
- * @method \test\Statement_tree fetchMode
- * @method \test\Statement_tree join
- * @method \test\Statement_tree leftJoin
- * @method \test\Statement_tree where
- * @method \test\Statement_tree orWhere
- * @method \test\Statement_tree key
- * @method \test\Statement_tree orKey
- * @method \test\Statement_tree groupBy
- * @method \test\Statement_tree having
- * @method \test\Statement_tree orderBy
- * @method \test\Statement_tree addOrderBy
- * @method \test\Statement_tree limit
- * @method \test\Statement_tree offset
- * @method \test\Statement_tree fields
- * @method \test\Statement_tree handler
- * @method \test\Statement_tree referrers
- * @method \test\Statement_tree references
- * @method \test\Statement_tree referrersUnique
- * @method \test\Statement_tree referencesUnique
- * @method \test\Statement_tree refs
- *
  * @method \test\Statement_tree_extra tree_extra
  * @method \test\Statement_fruit[] fruit
  */
@@ -205,32 +179,6 @@ class Statement_tree extends \aeqdev\APDO\Schema\Statement {}
  * @method \test\Row_tree_extra[] fetchPage
  * @method \test\Row_tree_extra fetchOne
  *
- * @method \test\Statement_tree_extra log
- * @method \test\Statement_tree_extra cache
- * @method \test\Statement_tree_extra nothing
- * @method \test\Statement_tree_extra table
- * @method \test\Statement_tree_extra pkey
- * @method \test\Statement_tree_extra fetchMode
- * @method \test\Statement_tree_extra join
- * @method \test\Statement_tree_extra leftJoin
- * @method \test\Statement_tree_extra where
- * @method \test\Statement_tree_extra orWhere
- * @method \test\Statement_tree_extra key
- * @method \test\Statement_tree_extra orKey
- * @method \test\Statement_tree_extra groupBy
- * @method \test\Statement_tree_extra having
- * @method \test\Statement_tree_extra orderBy
- * @method \test\Statement_tree_extra addOrderBy
- * @method \test\Statement_tree_extra limit
- * @method \test\Statement_tree_extra offset
- * @method \test\Statement_tree_extra fields
- * @method \test\Statement_tree_extra handler
- * @method \test\Statement_tree_extra referrers
- * @method \test\Statement_tree_extra references
- * @method \test\Statement_tree_extra referrersUnique
- * @method \test\Statement_tree_extra referencesUnique
- * @method \test\Statement_tree_extra refs
- *
  * @method \test\Statement_tree tree
  */
 class Statement_tree_extra extends \aeqdev\APDO\Schema\Statement {}
@@ -239,32 +187,6 @@ class Statement_tree_extra extends \aeqdev\APDO\Schema\Statement {}
  * @method \test\Row_fruit[] fetchAll
  * @method \test\Row_fruit[] fetchPage
  * @method \test\Row_fruit fetchOne
- *
- * @method \test\Statement_fruit log
- * @method \test\Statement_fruit cache
- * @method \test\Statement_fruit nothing
- * @method \test\Statement_fruit table
- * @method \test\Statement_fruit pkey
- * @method \test\Statement_fruit fetchMode
- * @method \test\Statement_fruit join
- * @method \test\Statement_fruit leftJoin
- * @method \test\Statement_fruit where
- * @method \test\Statement_fruit orWhere
- * @method \test\Statement_fruit key
- * @method \test\Statement_fruit orKey
- * @method \test\Statement_fruit groupBy
- * @method \test\Statement_fruit having
- * @method \test\Statement_fruit orderBy
- * @method \test\Statement_fruit addOrderBy
- * @method \test\Statement_fruit limit
- * @method \test\Statement_fruit offset
- * @method \test\Statement_fruit fields
- * @method \test\Statement_fruit handler
- * @method \test\Statement_fruit referrers
- * @method \test\Statement_fruit references
- * @method \test\Statement_fruit referrersUnique
- * @method \test\Statement_fruit referencesUnique
- * @method \test\Statement_fruit refs
  *
  * @method \test\Statement_tree tree
  */

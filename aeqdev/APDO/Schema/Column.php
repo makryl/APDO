@@ -48,7 +48,7 @@ class Column
      * Adds validator to the column.
      *
      * @param \callback $callback Validator function ($value, $row, $column)
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function addValidator($callback)
     {
@@ -62,7 +62,7 @@ class Column
      *
      * @param int $filter Filter ID. Use FILTER_* constants.
      * @param int|array $options Filter options.
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function filter($filter, $options = null)
     {
@@ -88,7 +88,7 @@ class Column
      * @param int|array $options Filter options.
      * @param string $error_message Error message on validation fail.
      * @throws \aeqdev\APDO\Schema\ColumnValidatorException
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     public function filterStrict($filter, $options = null, $error_message = null)
     {
@@ -116,21 +116,22 @@ class Column
      * Adds required filter to the column.
      * Throws exception if value is empty and not integer 0, not float 0 and not boolean false.
      *
+     * @param string $error_message Error message on validation fail.
      * @throws \aeqdev\APDO\Schema\ColumnRequiredException
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
-    public function required()
+    public function required($error_message = null)
     {
         $this->null = false;
-        
-        return $this->addValidator(function ($value, $row) {
+
+        return $this->addValidator(function ($value, $row) use ($error_message) {
             if (
                 empty($value)
                 && $value !== 0
                 && $value !== 0.
                 && $value !== false
             ) {
-                throw new ColumnRequiredException($row, $this);
+                throw new ColumnRequiredException($row, $this, $error_message);
             }
             return $value;
         });
@@ -141,7 +142,7 @@ class Column
      * Skipped columns will not passed to validated values.
      *
      * @throws \aeqdev\APDO\Schema\ColumnSkipException
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     function emptySkip()
     {
@@ -160,7 +161,7 @@ class Column
      * Skipped columns will not passed to validated values.
      *
      * @throws \aeqdev\APDO\Schema\ColumnSkipException
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     function nullSkip()
     {
@@ -179,7 +180,7 @@ class Column
      * This filter sets value of foreign key column from primary key of referenced data.
      * If referenced data not exists, column value used.
      *
-     * @return \static Current column.
+     * @return static|$this|\this Current column.
      */
     function fkey()
     {
@@ -214,6 +215,18 @@ class ColumnValidatorException extends \Exception
         parent::__construct($message, $code, $previous);
         $this->row = $row;
         $this->column = $column;
+    }
+
+    public function __toString()
+    {
+        $message = $this->message;
+        $this->message = 'Validation failed for column "' . $this->column->name . '"'
+            . ' in row "' . $this->row->pkey() . '"'
+            . ' of table "' . $this->column->table->name . '"'
+            . ' with message "' . $message . '"';
+        $string = parent::__toString();
+        $this->message = $message;
+        return $string;
     }
 
 }
