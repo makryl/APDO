@@ -1019,10 +1019,10 @@ class APDOStatement
             : null;
     }
 
-    protected function cacheGetRow($id)
+    protected function cacheGetRow($id, $fetchMode)
     {
         return isset($this->cache)
-            ? $this->cache->get($this->cacheKeyRow($id))
+            ? $this->cache->get($this->cacheKeyRow($id, $fetchMode))
             : null;
     }
 
@@ -1151,7 +1151,7 @@ class APDOStatement
         if (isset($k)) {
             $index[$k] [] = & $item;
             if (empty($cached[$k]) && empty($keys[$k])) {
-                $cache = $this->cacheGetRow($k);
+                $cache = $this->cacheGetRow($k, $this->fetchMode);
                 if (isset($cache)) {
                     $cached[$k] = $cache;
                 } else {

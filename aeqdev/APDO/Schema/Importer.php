@@ -20,6 +20,7 @@ class Importer
 {
 
     public $prefix = '';
+    public $suffix = '';
     public $overrideStatementDocs = false;
     public $uses;
     public $classSchema;
@@ -127,11 +128,11 @@ class Importer
         fwrite($this->file, "/**\n");
         if (!empty($this->schema)) {
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, " * @property {$this->namespace}\\Table_{$table} \${$table}\n");
+                fwrite($this->file, " * @property {$this->namespace}\\Table{$this->suffix}_{$table} \${$table}\n");
             }
             fwrite($this->file, " *\n");
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement_{$table} {$table}\n");
+                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$table} {$table}\n");
             }
         }
         fwrite($this->file, " */\n");
@@ -143,7 +144,7 @@ class Importer
             fwrite($this->file, "\n");
             $namespace = addslashes($this->namespace);
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, "    public \$class_{$table} = '{$namespace}\\\\Table_{$table}';\n");
+                fwrite($this->file, "    public \$class_{$table} = '{$namespace}\\\\Table{$this->suffix}_{$table}';\n");
             }
         }
         fwrite($this->file, "}\n\n");
@@ -154,8 +155,8 @@ class Importer
         fwrite($this->file, "/**\n");
         fwrite($this->file, " * @property {$this->namespace}\\{$this->class} \$schema\n");
         fwrite($this->file, " *\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row_{$table} create\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row_{$table} get\n");
+        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} create\n");
+        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} get\n");
         if (!empty($tdata['cols'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -164,7 +165,7 @@ class Importer
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Table_{$table} extends {$this->classTable}\n");
+        fwrite($this->file, "class Table{$this->suffix}_{$table} extends {$this->classTable}\n");
         fwrite($this->file, "{\n");
         fwrite($this->file, "    public \$name = '$table';\n");
         if (!empty($tdata['pkey'])) {
@@ -202,7 +203,7 @@ class Importer
         }
         fwrite($this->file, "\n");
         $namespace = addslashes($this->namespace);
-        fwrite($this->file, "    public \$class_row = '{$namespace}\\\\Row_{$table}';\n");
+        fwrite($this->file, "    public \$class_row = '{$namespace}\\\\Row{$this->suffix}_{$table}';\n");
         fwrite($this->file, "\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -218,7 +219,11 @@ class Importer
                         $cdef = $cdef . "->fkey()";
                     }
                 }
-                if (empty($cdata['null']) && !in_array($col, $tdata['pkey'])) {
+                if (
+                    empty($cdata['null'])
+                    && !empty($tdata['pkey'])
+                    && (!in_array($col, $tdata['pkey']) || count($tdata['pkey']) > 1)
+                ) {
                     $cdef = $cdef . "->required()";
                 }
                 fwrite($this->file, "    protected function column_{$col}() { return $cdef; }\n");
@@ -230,25 +235,25 @@ class Importer
     protected function renderRow($table, $tdata)
     {
         fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @property {$this->namespace}\\Table_{$table} \$table\n");
+        fwrite($this->file, " * @property {$this->namespace}\\Table{$this->suffix}_{$table} \$table\n");
         if (!empty($tdata['fkey'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, " * @method {$this->namespace}\\Row_{$rtable} {$rtable}\n");
+                fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable} {$rtable}\n");
             }
         }
         if (!empty($tdata['refs'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['refs'] as $rtable) {
                 if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, " * @method {$this->namespace}\\Row_{$rtable} {$rtable}\n");
+                    fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable} {$rtable}\n");
                 } else {
-                    fwrite($this->file, " * @method {$this->namespace}\\Row_{$rtable}[] {$rtable}\n");
+                    fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable}[] {$rtable}\n");
                 }
             }
         }
         fwrite($this->file, " */\n");
-        fwrite($this->file, "class Row_{$table} extends {$this->classRow}\n");
+        fwrite($this->file, "class Row{$this->suffix}_{$table} extends {$this->classRow}\n");
         fwrite($this->file, "{\n");
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -258,7 +263,7 @@ class Importer
         if (!empty($tdata['fkey'])) {
             fwrite($this->file, "\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, "    /** @var {$this->namespace}\\Row_{$rtable} */\n");
+                fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable} */\n");
                 fwrite($this->file, "    public \${$rtable};\n");
             }
         }
@@ -266,10 +271,10 @@ class Importer
             fwrite($this->file, "\n");
             foreach ($tdata['refs'] as $rtable) {
                 if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, "    /** @var {$this->namespace}\\Row_{$rtable} */\n");
+                    fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable} */\n");
                     fwrite($this->file, "    public \${$rtable};\n");
                 } else {
-                    fwrite($this->file, "    /** @var {$this->namespace}\\Row_{$rtable}[] */\n");
+                    fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable}[] */\n");
                     fwrite($this->file, "    public \${$rtable} = [];\n");
                 }
             }
@@ -280,9 +285,9 @@ class Importer
     protected function renderStatement($table, $tdata)
     {
         fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row_{$table}[] fetchAll\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row_{$table}[] fetchPage\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row_{$table} fetchOne\n");
+        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table}[] fetchAll(\$fetchMode = null, \$fetchArg = null, \$fetchCtorArgs = null)\n");
+        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table}[] fetchPage(\$page = 1)\n");
+        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} fetchOne(\$fetchMode = null, \$fetchArg = null, \$fetchCtorArgs = null)\n");
         if ($this->overrideStatementDocs) {
             fwrite($this->file, " *\n");
             foreach ([
@@ -312,28 +317,28 @@ class Importer
                 'referencesUnique',
                 'refs',
             ] as $method) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement_{$table} $method\n");
+                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$table} $method\n");
             }
         }
         if (!empty($tdata['fkey'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement_{$rtable} {$rtable}\n");
+                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable} {$rtable}\n");
             }
         }
         if (!empty($tdata['refs'])) {
             fwrite($this->file, " *\n");
             foreach ($tdata['refs'] as $rtable) {
                 if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, " * @method {$this->namespace}\\Statement_{$rtable} {$rtable}\n");
+                    fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable} {$rtable}\n");
                 } else {
-                    fwrite($this->file, " * @method {$this->namespace}\\Statement_{$rtable}[] {$rtable}\n");
+                    fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable}[] {$rtable}\n");
                 }
             }
         }
         fwrite($this->file, " */\n");
         $namespace = __NAMESPACE__;
-        fwrite($this->file, "class Statement_{$table} extends \\{$namespace}\\Statement {}\n\n");
+        fwrite($this->file, "class Statement{$this->suffix}_{$table} extends \\{$namespace}\\Statement {}\n\n");
     }
 
     /**
@@ -358,16 +363,16 @@ class Importer
         foreach (explode(';', $sql) as $st) {
 
             # create table
-            if (!preg_match('/create\s+table\s+(\w+)\s*\((.*)\)/is', $st, $m)) {
+            if (!preg_match('/create\s+table\s+(if\s+not\s+exists\s+)?(\w+)\s*\((.*)\)/is', $st, $m)) {
                 continue;
             }
 
-            $tname = substr($m[1], $prefixLength);
-            $tdef = $m[2];
+            $tname = substr($m[2], $prefixLength);
+            $tdef = $m[3];
             $table = [];
 
             # columns
-            foreach (explode(',', $tdef) as $def) {
+            foreach (preg_split('/,\s*[\r\n]+/', $tdef) as $def) {
 
                 # primary key
                 if (preg_match('/primary\s+key\s*\((.*)\)/i', $def, $m)) {

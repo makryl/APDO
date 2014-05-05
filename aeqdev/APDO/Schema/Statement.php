@@ -104,9 +104,9 @@ class Statement extends \aeqdev\APDOStatement
         }
     }
 
-    protected function cacheGetRow($id)
+    protected function cacheGetRow($id, $fetchMode)
     {
-        $r = parent::cacheGetRow($id);
+        $r = parent::cacheGetRow($id, $fetchMode);
         if ($r instanceof Row) {
             $r->table = $this->schemaTable;
         }
