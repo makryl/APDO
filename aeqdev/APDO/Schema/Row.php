@@ -95,6 +95,18 @@ class Row
     }
 
     /**
+     * Deletes row from database.
+     */
+    public function delete()
+    {
+        if (!$this->new) {
+            $this->table->statement()
+                ->key($this->pkey())
+                ->delete();
+        }
+    }
+
+    /**
      * @return int|string|array Primary key of current row.
      */
     public function pkey()
@@ -159,7 +171,7 @@ class RowValidateException extends \Exception
         $this->row = $row;
         $this->exceptions = $exceptions;
     }
-    
+
     public function __toString() {
         $s = '';
         foreach ($this->exceptions as $e) {
