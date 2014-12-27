@@ -1,16 +1,5 @@
 <?php
 
-/*
- * http://aeqdev.com/tools/php/apdo/
- * v 0.2
- *
- * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
 namespace aeqdev\APDO\Schema;
 
 /**
@@ -48,7 +37,7 @@ class Column
      * Adds validator to the column.
      *
      * @param \callback $callback Validator function ($value, $row, $column)
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     public function addValidator($callback)
     {
@@ -62,7 +51,7 @@ class Column
      *
      * @param int $filter Filter ID. Use FILTER_* constants.
      * @param int|array $options Filter options.
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     public function filter($filter, $options = null)
     {
@@ -88,7 +77,7 @@ class Column
      * @param int|array $options Filter options.
      * @param string $error_message Error message on validation fail.
      * @throws \aeqdev\APDO\Schema\ColumnValidatorException
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     public function filterStrict($filter, $options = null, $error_message = null)
     {
@@ -118,7 +107,7 @@ class Column
      *
      * @param string $error_message Error message on validation fail.
      * @throws \aeqdev\APDO\Schema\ColumnRequiredException
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     public function required($error_message = null)
     {
@@ -142,7 +131,7 @@ class Column
      * Skipped columns will not passed to validated values.
      *
      * @throws \aeqdev\APDO\Schema\ColumnSkipException
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     function emptySkip()
     {
@@ -161,7 +150,7 @@ class Column
      * Skipped columns will not passed to validated values.
      *
      * @throws \aeqdev\APDO\Schema\ColumnSkipException
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     function nullSkip()
     {
@@ -180,7 +169,7 @@ class Column
      * This filter sets value of foreign key column from primary key of referenced data.
      * If referenced data not exists, column value used.
      *
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     function fkey()
     {

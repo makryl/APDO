@@ -1,16 +1,5 @@
 <?php
 
-/*
- * http://aeqdev.com/tools/php/apdo/
- * v 0.2
- *
- * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
 namespace aeqdev\APDO\Schema\Column;
 
 /**
@@ -36,7 +25,7 @@ class Time extends \aeqdev\APDO\Schema\Column
     /**
      * Sets date/time format.
      *
-     * @return static|$this|\this Current column.
+     * @return static|$this Current column.
      */
     public function format($format)
     {

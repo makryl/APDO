@@ -1,16 +1,5 @@
 <?php
 
-/*
- * http://aeqdev.com/tools/php/apdo/
- * v 0.2
- *
- * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
 namespace aeqdev\APDO\Schema;
 
 use \aeqdev\APDO\Schema;
@@ -150,9 +139,9 @@ class Exporter
     public function getSQL($withDrops = false)
     {
         if (isset($this->compare)) {
-            return $this->exportDiffSQL($withDrops);
+            return $this->getDiffSQL($withDrops);
         } else {
-            return $this->exportFullSQL();
+            return $this->getFullSQL();
         }
     }
 

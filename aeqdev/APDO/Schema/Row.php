@@ -1,16 +1,5 @@
 <?php
 
-/*
- * http://aeqdev.com/tools/php/apdo/
- * v 0.2
- *
- * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
 namespace aeqdev\APDO\Schema;
 
 /**
@@ -44,7 +33,7 @@ class Row
      *
      * @param string $name
      * @param null $args
-     * @return \aeqdev\APDO\Schema\Row|\aeqdev\APDO\Schema\Statement
+     * @return null|\aeqdev\APDO\Schema\Row|\aeqdev\APDO\Schema\Statement
      */
     public function __call($name, $args)
     {
@@ -63,6 +52,7 @@ class Row
                     : $statement->fetchOne();
             }
         }
+        return null;
     }
 
     /**

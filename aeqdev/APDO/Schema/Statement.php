@@ -1,16 +1,5 @@
 <?php
 
-/*
- * http://aeqdev.com/tools/php/apdo/
- * v 0.2
- *
- * Copyright © 2013 Krylosov Maksim <Aequiternus@gmail.com>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
 namespace aeqdev\APDO\Schema;
 
 /**
@@ -28,7 +17,7 @@ class Statement extends \aeqdev\APDOStatement
      * Sets schema table for the statement.
      *
      * @param \aeqdev\APDO\Schema\Table $table Schema table.
-     * @return static|$this|\this Current statement.
+     * @return static|$this Current statement.
      */
     public function schemaTable(Table $table)
     {
@@ -46,7 +35,7 @@ class Statement extends \aeqdev\APDOStatement
      * If no foreign key found, marks statement as "nothing".
      *
      * @param array|object $data Data.
-     * @return static|$this|\this Current statement.
+     * @return static|$this Current statement.
      */
     public function refs(&$data)
     {
@@ -102,6 +91,7 @@ class Statement extends \aeqdev\APDOStatement
             $r = $this->fetchAll();
             return $this->schemaTable->schema->{$name}()->refs($r);
         }
+        return null;
     }
 
     protected function cacheGetRow($id, $fetchMode)
