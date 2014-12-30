@@ -248,9 +248,6 @@ class Importer
         }
         $data .= "}\n";
 
-        $data .= $this->renderStatement($table, $tdata);
-        $data .= $this->renderResult($table, $tdata);
-
         file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $class . '.php', $data);
 
         $classFile = $this->baseDir . DIRECTORY_SEPARATOR . $this->class . DIRECTORY_SEPARATOR . $class . '.php';
