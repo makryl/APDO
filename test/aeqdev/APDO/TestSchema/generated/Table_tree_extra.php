@@ -47,23 +47,3 @@ class Table_tree_extra extends \aeqdev\APDO\Schema\Table
     protected function column_tree() { return (new \aeqdev\APDO\Schema\Column\Int())->fkey()->required()->comment('Tree'); }
     protected function column_parent() { return (new \aeqdev\APDO\Schema\Column\Int())->fkey()->comment('Parent tree'); }
 }
-
-/**
- * Tree extra
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Result_tree_extra fetchAll
- * @method \test\aeqdev\APDO\TestSchema\generated\Result_tree_extra fetchPage
- * @method \test\aeqdev\APDO\TestSchema\Row_tree_extra fetchOne
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree parent Parent tree
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree tree Tree
- */
-class Statement_tree_extra extends \aeqdev\APDO\Schema\Statement {}
-
-/**
- * Tree extra
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree parent Parent tree
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree tree Tree
- */
-class Result_tree_extra extends \aeqdev\APDO\Schema\Result {}

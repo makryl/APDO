@@ -40,21 +40,3 @@ class Table_fruit extends \aeqdev\APDO\Schema\Table
     protected function column_color() { return (new \aeqdev\APDO\Schema\Column\String())->length(5)->comment('Color'); }
     protected function column_tree() { return (new \aeqdev\APDO\Schema\Column\Int())->fkey()->comment('Tree'); }
 }
-
-/**
- * Fruit
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Result_fruit fetchAll
- * @method \test\aeqdev\APDO\TestSchema\generated\Result_fruit fetchPage
- * @method \test\aeqdev\APDO\TestSchema\Row_fruit fetchOne
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree tree Tree
- */
-class Statement_fruit extends \aeqdev\APDO\Schema\Statement {}
-
-/**
- * Fruit
- *
- * @method \test\aeqdev\APDO\TestSchema\generated\Statement_tree tree Tree
- */
-class Result_fruit extends \aeqdev\APDO\Schema\Result {}

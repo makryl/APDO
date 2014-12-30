@@ -105,6 +105,8 @@ class Importer
         foreach ($this->schema as $table => $tdata) {
             $this->renderTable($table, $tdata);
             $this->renderRow($table, $tdata);
+            $this->renderStatement($table, $tdata);
+            $this->renderResult($table, $tdata);
         }
     }
 
@@ -326,7 +328,10 @@ class Importer
 
     protected function renderStatement($table, $tdata)
     {
-        $data = "\n/**\n";
+        $class = "Statement{$this->suffix}_{$table}";
+
+        $data = "<?php\n\nnamespace {$this->namespaceGenerated};\n";
+        $data .= "\n/**\n";
         $data .= " *{$tdata['comment']}\n";
         $data .= " *\n";
         $data .= " * @method \\{$this->namespaceGenerated}\\Result{$this->suffix}_{$table} fetchAll\n";
@@ -337,19 +342,22 @@ class Importer
         $namespace = __NAMESPACE__;
         $data .= "class Statement{$this->suffix}_{$table} extends \\{$namespace}\\Statement {}\n";
 
-        return $data;
+        file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $class . '.php', $data);
     }
 
     protected function renderResult($table, $tdata)
     {
-        $data = "\n/**\n";
+        $class = "Result{$this->suffix}_{$table}";
+
+        $data = "<?php\n\nnamespace {$this->namespaceGenerated};\n";
+        $data .= "\n/**\n";
         $data .= " *{$tdata['comment']}\n";
         $data .= $this->renderRefsMethods($tdata);
         $data .= " */\n";
         $namespace = __NAMESPACE__;
         $data .= "class Result{$this->suffix}_{$table} extends \\{$namespace}\\Result {}\n";
 
-        return $data;
+        file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $class . '.php', $data);
     }
 
     protected function renderRefsMethods($tdata, $isRow = false) {
