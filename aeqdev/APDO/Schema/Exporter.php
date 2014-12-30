@@ -14,7 +14,7 @@ class Exporter
     public $pkeyTypeSerial = false;
 
     /**
-     * @var \aeqdev\APDO\Schema
+     * @var Schema
      */
     public $readSchema;
     public $typeByClassColumn;
@@ -100,14 +100,13 @@ class Exporter
 
             $tname = substr($property, 6);
             $table = $schema->{$tname};
-
             $pkey = (array)$table->pkey;
-            foreach ($pkey as $pk) {
-                $this->schema[$tname]['pkey'] [] = $pk;
-            }
+
+            $this->schema[$tname]['comment'] = empty($table->comment) ? '' : ' ' . $table->comment;
 
             if (!empty($table->cols)) {
                 foreach ($table->cols as $cname) {
+                    /** @var Column $col */
                     $col = $table->{$cname}();
 
                     $this->schema[$tname]['cols'][$cname]['type'] = $this->typeByClassColumn[get_class($col)];
@@ -120,7 +119,13 @@ class Exporter
                         = in_array($cname, $pkey)
                         ? false
                         : (isset($col->null) ? $col->null : true);
+
+                    $this->schema[$tname]['cols'][$cname]['comment'] = empty($col->comment) ? '' : ' ' . $col->comment;
                 }
+            }
+
+            foreach ($pkey as $pk) {
+                $this->schema[$tname]['pkey'] [] = $pk;
             }
 
             if (!empty($table->ukey)) {
@@ -129,8 +134,9 @@ class Exporter
 
             if (!empty($table->fkey)) {
                 $this->schema[$tname]['fkey'] = $table->fkey;
-                foreach ($table->fkey as $rtable => $fkey) {
-                    $this->schema[$rtable]['refs'][$tname] = $tname;
+                foreach ($table->fkey as $fkey => $rtable) {
+                    $this->schema[$rtable]['refs'][$tname][$fkey] = $fkey;
+                    $this->schema[$tname]['rkey'][$rtable][$fkey] = $fkey;
                 }
             }
         }
@@ -159,7 +165,7 @@ class Exporter
 
     protected function renderTable($tablePrefix, $tname, $tdata)
     {
-        $this->sql .= "CREATE TABLE {$tablePrefix}$tname (\n";
+        $this->sql .= "\nCREATE TABLE {$tablePrefix}$tname (\n";
         $prefix = "    ";
         $suffix = ",\n";
 
@@ -172,8 +178,8 @@ class Exporter
         $this->sql .= "\n";
 
         if (!empty($tdata['fkey'])) {
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                $this->renderFkey($tablePrefix, $rtable, $fkey, $prefix, $suffix);
+            foreach ($tdata['fkey'] as $fkey => $rtable) {
+                $this->renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix);
             }
         }
 
@@ -185,7 +191,8 @@ class Exporter
 
         $this->renderPkey($tdata, $prefix, "\n");
 
-        $this->sql .= ");\n\n";
+        $ecomment = addslashes(trim($tdata['comment']));
+        $this->sql .= ") COMMENT '{$ecomment}';\n";
     }
 
     protected function renderCol($cname, $cdata, $tdata, $prefix, $suffix)
@@ -203,10 +210,12 @@ class Exporter
             }
         }
 
-        $this->sql .= $prefix . $cname . ' ' . $type . $length . $null . $suffix;
+        $comment = empty($cdata['comment']) ? '' : " COMMENT '" . addslashes(trim($cdata['comment'])) ."'";
+
+        $this->sql .= $prefix . $cname . ' ' . $type . $length . $null . $comment . $suffix;
     }
 
-    protected function renderFkey($tablePrefix, $rtable, $fkey, $prefix, $suffix)
+    protected function renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix)
     {
         $rid = $this->schema[$rtable]['pkey'][0];
         $this->sql .= $prefix . 'FOREIGN KEY (' . $fkey . ') REFERENCES '
@@ -228,8 +237,8 @@ class Exporter
     {
         $this->sql = '';
         $tablePrefix = $this->readSchema->prefix;
-        $cmt = $withDrops ? '' : '-- ';
-        $suffix = ";\n\n";
+        $cmt = "\n" . ($withDrops ? '' : '-- ');
+        $suffix = ";\n";
 
         foreach ($this->compare as $tname => $tdata) {
             if (isset($this->schema[$tname])) {
@@ -243,6 +252,14 @@ class Exporter
                         }
                     }
                 }
+
+//                if (!empty($tdata['fkey'])) {
+//                    foreach ($tdata['fkey'] as $fkey => $rtable) {
+//                        if (!isset($ctdata['fkey'][$fkey])) {
+//                            $this->renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix);
+//                        }
+//                    }
+//                }
 
                 if (!empty($tdata['ukey'])) {
                     foreach ($tdata['ukey'] as $ukey) {
@@ -258,14 +275,14 @@ class Exporter
                     }
                 }
             } else {
-                $this->sql .= "{$cmt}DROP TABLE {$tablePrefix}$tname;\n\n";
+                $this->sql .= "{$cmt}DROP TABLE {$tablePrefix}$tname;\n";
             }
         }
 
         foreach ($this->schema as $tname => $tdata) {
             if (isset($this->compare[$tname])) {
                 $ctdata = $this->compare[$tname];
-                $prefix = "ALTER TABLE {$tablePrefix}$tname ADD ";
+                $prefix = "\nALTER TABLE {$tablePrefix}$tname ADD ";
 
                 if (!empty($tdata['cols'])) {
                     foreach ($tdata['cols'] as $cname => $cdata) {
@@ -281,14 +298,14 @@ class Exporter
                 }
 
                 if (!empty($tdata['fkey'])) {
-                    foreach ($tdata['fkey'] as $rtable => $fkey) {
-                        if (isset($ctdata['fkey'][$rtable])) {
-                            $cfkey = $ctdata['fkey'][$rtable];
+                    foreach ($tdata['fkey'] as $fkey => $rtable) {
+                        if (isset($ctdata['fkey'][$fkey])) {
+                            $cfkey = $ctdata['fkey'][$fkey];
                             if ($fkey != $cfkey) {
-                                $this->renderFkey($tablePrefix, $rtable, $fkey, $prefix, $suffix);
+                                $this->renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix);
                             }
                         } else {
-                            $this->renderFkey($tablePrefix, $rtable, $fkey, $prefix, $suffix);
+                            $this->renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix);
                         }
                     }
                 }

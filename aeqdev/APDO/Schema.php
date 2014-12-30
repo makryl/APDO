@@ -2,13 +2,14 @@
 
 namespace aeqdev\APDO;
 
-use \aeqdev\APDO\Schema\Statement;
+use aeqdev\APDO;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * Represents database schema.
  * Contains information about tables.
  */
-class Schema extends \aeqdev\APDO
+class Schema extends APDO
 {
 
     public $prefix;
@@ -19,7 +20,7 @@ class Schema extends \aeqdev\APDO
      * Creates table object with specified name, if it is not already exists, and returns it.
      *
      * @param string $name Table name
-     * @return \aeqdev\APDO\Schema\Table Table object
+     * @return Table Table object
      */
     public function __get($name)
     {
@@ -40,11 +41,11 @@ class Schema extends \aeqdev\APDO
      *
      * @param string $name Table name.
      * @param null $args
-     * @return \aeqdev\APDO\Schema\Statement Statement for specified table.
+     * @return Schema\Statement Statement for specified table.
      */
     public function __call($name, $args)
     {
-        /* @var $table \aeqdev\APDO\Schema\Table */
+        /* @var $table Table */
         $table = $this->{$name};
         return isset($table) ? $table->statement() : null;
     }
@@ -54,11 +55,11 @@ class Schema extends \aeqdev\APDO
      *
      * @param string $statement SQL statement.
      * @param string|array $args Argument or array of arguments for the statement.
-     * @return \aeqdev\APDO\Schema\Statement Created statement.
+     * @return Schema\Statement Created statement.
      */
     public function statement($statement = null, $args = null)
     {
-        return new Statement($this->parameters, $statement, $args);
+        return new Schema\Statement($this->options, $statement, $args);
     }
 
 }

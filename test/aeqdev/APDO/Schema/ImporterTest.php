@@ -2,13 +2,13 @@
 
 namespace aeqdev\APDO\Schema;
 
-require_once __DIR__ . '/../../../../aeqdev/APDO/Schema/Importer.php';
+require_once '../../../autoload.php';
 
 class ImporterTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\ImporterMock
+     * @var Importer
      */
     protected $object;
     protected $schemaInternal;
@@ -34,9 +34,45 @@ class ImporterTest extends \PHPUnit_Framework_TestCase
     {
         $this->object->read(__DIR__ . '/../Schema.sql');
         $tmpname = tempnam(null, 'apdo_test_');
-        $this->object->save($tmpname, '\\test\\Schema');
-        $this->assertFileEquals(__DIR__ . '/../Schema.php', $tmpname);
         unlink($tmpname);
+        mkdir($tmpname);
+        $this->object->save('\\test\\aeqdev\\APDO\\TestSchema', $tmpname);
+
+        $testFile = $tmpname . '/test/aeqdev/APDO/TestSchema.php';
+        $this->assertFileEquals(
+            __DIR__ . '/../TestSchema.php',
+            $testFile
+        );
+        unlink($testFile);
+
+        foreach (new \DirectoryIterator(__DIR__ . '/../TestSchema') as $file) {
+            if ($file->isFile()) {
+                $testFile = $tmpname . '/test/aeqdev/APDO/TestSchema/' . $file->getFilename();
+                $this->assertFileEquals(
+                    $file->getPathname(),
+                    $testFile
+                );
+                unlink($testFile);
+            }
+        }
+
+        foreach (new \DirectoryIterator(__DIR__ . '/../TestSchema/generated') as $file) {
+            if ($file->isFile()) {
+                $testFile = $tmpname . '/test/aeqdev/APDO/TestSchema/generated/' . $file->getFilename();
+                $this->assertFileEquals(
+                    $file->getPathname(),
+                    $testFile
+                );
+                unlink($testFile);
+            }
+        }
+
+        rmdir($tmpname . '/test/aeqdev/APDO/TestSchema/generated');
+        rmdir($tmpname . '/test/aeqdev/APDO/TestSchema');
+        rmdir($tmpname . '/test/aeqdev/APDO');
+        rmdir($tmpname . '/test/aeqdev');
+        rmdir($tmpname . '/test');
+        rmdir($tmpname);
     }
 
 }

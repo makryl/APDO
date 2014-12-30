@@ -2,40 +2,30 @@
 
 namespace aeqdev\APDO\Schema;
 
-require_once __DIR__ . '/../../../aeqdev/APDO.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/ICache.php';
-require_once __DIR__ . '/ArraySerializeCache.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Table.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Statement.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Row.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Time.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Date.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Bool.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Int.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/Float.php';
-require_once __DIR__ . '/../../../aeqdev/APDO/Schema/Column/String.php';
-require_once __DIR__ . '/Schema.php';
+use PDO;
+use test\aeqdev\APDO\ArraySerializeCache;
+use test\aeqdev\APDO\Schema;
 
-class APDOTest extends \PHPUnit_Framework_TestCase
+require_once '../../autoload.php';
+
+class SchemaTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var \test\Schema
+     * @var Schema
      */
     protected $object;
 
     /**
-     * @var \aeqdev\APDO\ArraySerializeCache
+     * @var ArraySerializeCache
      */
     protected $cache;
 
     protected function setUp()
     {
-        $this->object = new \test\Schema('mysql:host=localhost;dbname=test', 'root', '', [
-            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+        $this->object = new Schema('mysql:host=localhost;dbname=test', 'root', '', [
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
 
         $sql = file_get_contents(__DIR__ . '/Schema-drop.sql')
@@ -48,7 +38,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             }
         }
 
-        $this->cache = new \aeqdev\APDO\ArraySerializeCache();
+        $this->cache = new ArraySerializeCache();
     }
 
     protected function tearDown()
@@ -88,9 +78,9 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('height', $col_tree_extra_height->name);
         $this->assertInstanceOf('\\aeqdev\\APDO\\Schema\\Column\\Int', $col_tree_extra_height);
 
-        $col_fruit_tree_id = $this->object->fruit->tree_id();
-        $this->assertEquals('tree_id', $col_fruit_tree_id->name);
-        $this->assertInstanceOf('\\aeqdev\\APDO\\Schema\\Column\\Int', $col_fruit_tree_id);
+        $col_fruit_tree = $this->object->fruit->tree();
+        $this->assertEquals('tree', $col_fruit_tree->name);
+        $this->assertInstanceOf('\\aeqdev\\APDO\\Schema\\Column\\Int', $col_fruit_tree);
     }
 
     public function testTableCreateAndRowSave()
@@ -105,6 +95,7 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $fruit->save();
 
         $check_fruit = $this->object->fruit->get($fruit->id);
+        $this->assertNotNull($check_fruit);
         $this->assertEquals($check_fruit->id, $fruit->id);
         $this->assertEquals($check_fruit->name, $fruit->name);
     }
@@ -118,52 +109,16 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     public function testStatementFetchAll()
     {
         foreach ($this->object->tree()->fetchAll() as $tree) {
-            $this->assertInstanceOf('\\test\\Row_tree', $tree);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_tree', $tree);
         }
 
         foreach ($this->object->tree_extra()->fetchAll() as $tree_extra) {
-            $this->assertInstanceOf('\\test\\Row_tree_extra', $tree_extra);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_tree_extra', $tree_extra);
         }
 
         foreach ($this->object->fruit()->fetchAll() as $fruit) {
-            $this->assertInstanceOf('\\test\\Row_fruit', $fruit);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_fruit', $fruit);
         }
-    }
-
-    public function testStatementRefs()
-    {
-        $trees = $this->object->tree()->fetchAll();
-        $this->object->fruit()->refs($trees)->fetchAll();
-        $this->object->tree_extra()->refs($trees)->fetchAll();
-
-        $this->assertEquals(10, $trees[0]->tree_extra->height);
-        $this->assertEquals('apple1', $trees[0]->fruit[0]->name);
-        $this->assertEquals('apple2', $trees[0]->fruit[1]->name);
-
-        $this->assertEquals(20, $trees[1]->tree_extra->height);
-        $this->assertEquals('orange', $trees[1]->fruit[0]->name);
-
-        $fruits = $this->object->fruit()->fetchAll();
-        $tree_extras = $this->object->tree_extra()->refs($fruits)->fetchAll();
-        $this->assertEquals([], $tree_extras);
-    }
-
-    public function testRowCallValue()
-    {
-        $fruit = $this->object->fruit->create();
-        $fruit->color = 'yellow';
-        $this->assertEquals('yello', $fruit->color()); # because of limit 5 chars
-    }
-
-    public function testRowCallRefs()
-    {
-        $tree = $this->object->tree->get(1);
-
-        $this->assertEquals(10, $tree->tree_extra()->height);
-
-        $fruits = $tree->fruit()->fetchAll();
-        $this->assertEquals('apple1', $fruits[0]->name);
-        $this->assertEquals('apple2', $fruits[1]->name);
     }
 
     public function testStatementCall()
@@ -173,6 +128,41 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('apple1', $fruits[0]->name);
         $this->assertEquals('apple2', $fruits[1]->name);
         $this->assertEquals('orange', $fruits[2]->name);
+    }
+
+    public function testRowCall()
+    {
+        $tree = $this->object->tree->get(1);
+
+        $this->assertEquals(10, $tree->tree_extra__tree()->height);
+
+        $fruits = $tree->fruit()->fetchAll();
+        $this->assertEquals('apple1', $fruits[0]->name);
+        $this->assertEquals('apple2', $fruits[1]->name);
+    }
+
+    public function testResultCall()
+    {
+        $trees = $this->object->tree()->addOrderBy('id')->fetchAll();
+        $trees->fruit()->fetchAll();
+        $trees->tree_extra__tree()->fetchAll();
+
+        $this->assertEquals(10, $trees[0]->tree_extra__tree->height);
+        $this->assertEquals('apple1', $trees[0]->fruit[0]->name);
+        $this->assertEquals('apple2', $trees[0]->fruit[1]->name);
+
+        $this->assertEquals(20, $trees[1]->tree_extra__tree->height);
+        $this->assertEquals('orange', $trees[1]->fruit[0]->name);
+
+        $fruits = $this->object->fruit()->fetchAll();
+        $this->assertNull($fruits->tree_extra());
+    }
+
+    public function testColumnValidation()
+    {
+        $fruit = $this->object->fruit->create();
+        $fruit->color = 'yellow';
+        $this->assertEquals('yello', $this->object->fruit->color()->value($fruit)); # because of limit 5 chars
     }
 
     public function testCache()

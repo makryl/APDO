@@ -3,18 +3,21 @@
 return [
     'tree' =>
     [
+        'comment' => ' Tree',
         'cols' =>
         [
             'id' =>
             [
                 'type' => 'int',
                 'null' => false,
+                'comment' => '',
             ],
             'name' =>
             [
                 'type' => 'string',
                 'length' => '20',
                 'null' => true,
+                'comment' => ' Name',
             ],
         ],
         'pkey' =>
@@ -23,37 +26,62 @@ return [
         ],
         'refs' =>
         [
-            'tree_extra' => 'tree_extra',
-            'fruit' => 'fruit',
+            'tree_extra' =>
+            [
+                'parent' => 'parent',
+                'tree' => 'tree',
+            ],
+            'fruit' =>
+            [
+                'tree' => 'tree',
+            ],
         ],
     ],
     'tree_extra' =>
     [
+        'comment' => ' Tree extra',
         'cols' =>
         [
             'id' =>
             [
                 'type' => 'int',
                 'null' => false,
+                'comment' => '',
             ],
             'height' =>
             [
                 'type' => 'int',
                 'null' => true,
+                'comment' => ' Height',
             ],
-            'tree_id' =>
+            'tree' =>
             [
                 'type' => 'int',
                 'null' => false,
+                'comment' => ' Tree',
+            ],
+            'parent' =>
+            [
+                'type' => 'int',
+                'null' => true,
+                'comment' => ' Parent tree',
+            ],
+        ],
+        'fkey' =>
+        [
+            'parent' => 'tree',
+            'tree' => 'tree',
+        ],
+        'rkey' => [
+            'tree' =>
+            [
+                'parent' => 'parent',
+                'tree' => 'tree',
             ],
         ],
         'ukey' =>
         [
-            'tree_id' => 'tree_id',
-        ],
-        'fkey' =>
-        [
-            'tree' => 'tree_id',
+            'tree' => 'tree',
         ],
         'pkey' =>
         [
@@ -62,34 +90,46 @@ return [
     ],
     'fruit' =>
     [
+        'comment' => ' Fruit',
         'cols' =>
         [
             'id' =>
             [
                 'type' => 'int',
                 'null' => false,
+                'comment' => '',
             ],
             'name' =>
             [
                 'type' => 'string',
                 'length' => '20',
                 'null' => false,
+                'comment' => ' Name',
             ],
             'color' =>
             [
                 'type' => 'string',
                 'length' => '5',
                 'null' => true,
+                'comment' => ' Color',
             ],
-            'tree_id' =>
+            'tree' =>
             [
                 'type' => 'int',
                 'null' => true,
+                'comment' => ' Tree',
             ],
         ],
         'fkey' =>
         [
-            'tree' => 'tree_id',
+            'tree' => 'tree',
+        ],
+        'rkey' =>
+        [
+            'tree' =>
+            [
+                'tree' => 'tree',
+            ],
         ],
         'pkey' =>
         [

@@ -10,18 +10,31 @@ class Column
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\Table
+     * @var Table
      */
     public $table;
     public $name;
+    public $comment;
     public $null = true;
 
     protected $validators = [];
 
     /**
+     * Set comment for column.
+     *
+     * @param string $comment Comment.
+     * @return static|$this Current column.
+     */
+    public function comment($comment)
+    {
+        $this->comment = $comment;
+        return $this;
+    }
+
+    /**
      * Executes all validators on column value of specified row and returns result.
      *
-     * @param \aeqdev\APDO\Schema\Row $row Row to extract raw value from.
+     * @param Row $row Row to extract raw value from.
      * @return mixed Valid value.
      */
     public function value(Row $row)
@@ -76,7 +89,7 @@ class Column
      * @param int $filter Filter ID. Use FILTER_* constants.
      * @param int|array $options Filter options.
      * @param string $error_message Error message on validation fail.
-     * @throws \aeqdev\APDO\Schema\ColumnValidatorException
+     * @throws ColumnValidatorException
      * @return static|$this Current column.
      */
     public function filterStrict($filter, $options = null, $error_message = null)
@@ -106,7 +119,7 @@ class Column
      * Throws exception if value is empty and not integer 0, not float 0 and not boolean false.
      *
      * @param string $error_message Error message on validation fail.
-     * @throws \aeqdev\APDO\Schema\ColumnRequiredException
+     * @throws ColumnRequiredException
      * @return static|$this Current column.
      */
     public function required($error_message = null)
@@ -130,15 +143,13 @@ class Column
      * Adds filter to the column, that throws skip exception for empty values.
      * Skipped columns will not passed to validated values.
      *
-     * @throws \aeqdev\APDO\Schema\ColumnSkipException
+     * @throws ColumnSkipException
      * @return static|$this Current column.
      */
     function emptySkip()
     {
-        return $this->addValidator(function($value, $row)
-        {
-            if (empty($value))
-            {
+        return $this->addValidator(function($value, $row) {
+            if (empty($value)) {
                 throw new ColumnSkipException($row, $this);
             }
             return $value;
@@ -149,15 +160,13 @@ class Column
      * Adds filter to the column, that throws skip exception for null values.
      * Skipped columns will not passed to validated values.
      *
-     * @throws \aeqdev\APDO\Schema\ColumnSkipException
+     * @throws ColumnSkipException
      * @return static|$this Current column.
      */
     function nullSkip()
     {
-        return $this->addValidator(function($value, $row)
-        {
-            if (!isset($value))
-            {
+        return $this->addValidator(function($value, $row) {
+            if (!isset($value)) {
                 throw new ColumnSkipException($row, $this);
             }
             return $value;
@@ -169,14 +178,22 @@ class Column
      * This filter sets value of foreign key column from primary key of referenced data.
      * If referenced data not exists, column value used.
      *
+     * @param string $error_message Error message on validation fail.
+     * @throws ColumnValidatorException
      * @return static|$this Current column.
      */
-    function fkey()
+    function fkey($error_message = null)
     {
-        return $this->addValidator(function($value, $row)
-        {
-            $rtable = $this->table->rtable[$this->name];
-            return isset($row->{$rtable}) ? $row->{$rtable}->pkey() : $value;
+        return $this->addValidator(function($value, $row) use ($error_message) {
+            /** @var $row Row */
+            if ($value instanceof Row) {
+                if ($value->table != $this->table->fkey[$this->name]) {
+                    throw new ColumnValidatorException($row, $this, $error_message);
+                }
+                return $value->pkey();
+            } else {
+                return $value;
+            }
         });
     }
 
@@ -190,12 +207,12 @@ class ColumnValidatorException extends \Exception
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\Row
+     * @var Row
      */
     public $row;
 
     /**
-     * @var \aeqdev\APDO\Schema\Column
+     * @var Column
      */
     public $column;
 
@@ -212,7 +229,7 @@ class ColumnValidatorException extends \Exception
         $this->message = 'Validation failed for column "' . $this->column->name . '"'
             . ' in row "' . $this->row->pkey() . '"'
             . ' of table "' . $this->column->table->name . '"'
-            . ' with message "' . $message . '"';
+            . (empty($message) ? '' : ' with message "' . $message . '"');
         $string = parent::__toString();
         $this->message = $message;
         return $string;

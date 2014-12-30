@@ -2,11 +2,13 @@
 
 namespace aeqdev\APDO\Schema\Column;
 
+use aeqdev\APDO\Schema\Column;
+
 /**
  * Boolean column.
  * Adds FILTER_VALIDATE_BOOLEAN filter.
  */
-class Bool extends \aeqdev\APDO\Schema\Column
+class Bool extends Column
 {
 
     public function __construct()

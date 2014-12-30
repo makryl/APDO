@@ -36,7 +36,7 @@ class Memcache extends \Memcache implements ICache
 
     /**
      * Sets prefix for key names.
-     * Recomended prefix: "domain.name/apdo".
+     * Recommended prefix: "domain.name/apdo".
      *
      * @param string $prefix
      */

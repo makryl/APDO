@@ -1,6 +1,8 @@
 <?php
 
-namespace aeqdev\APDO;
+namespace test\aeqdev\APDO;
+
+use aeqdev\APDO\ICache;
 
 class ArraySerializeCache implements ICache
 {

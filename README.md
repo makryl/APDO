@@ -54,7 +54,7 @@ $fruits = $apdo
     ->fetchAll();
 ```
 
-Thats better.
+That's better.
 
 How much rows it was last time, but without limit?
 

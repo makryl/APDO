@@ -2,12 +2,14 @@
 
 namespace aeqdev\APDO\Schema\Column;
 
+use aeqdev\APDO\Schema\Column;
+
 /**
  * String column.
  * Adds trim filter.
- * Has fiew string type additional filters.
+ * Has few string type additional filters.
  */
-class String extends \aeqdev\APDO\Schema\Column
+class String extends Column
 {
 
     public $length;
@@ -23,11 +25,12 @@ class String extends \aeqdev\APDO\Schema\Column
     }
 
     /**
-     * Adds validator that reduses string length to specified value.
+     * Adds validator that reduces string length to specified value.
      * Uses mb_substr function with default encoding.
      * You can set default encoding using mb_internal_encoding function or php.ini.
      *
-     * @return static|$this Current column.
+     * @param int $length
+     * @return $this|static Current column.
      */
     public function length($length)
     {

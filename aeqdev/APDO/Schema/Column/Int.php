@@ -2,11 +2,13 @@
 
 namespace aeqdev\APDO\Schema\Column;
 
+use aeqdev\APDO\Schema\Column;
+
 /**
  * Integer column.
  * Adds FILTER_VALIDATE_INT filter.
  */
-class Int extends \aeqdev\APDO\Schema\Column
+class Int extends Column
 {
 
     public function __construct()

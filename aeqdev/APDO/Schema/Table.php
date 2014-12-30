@@ -13,22 +13,23 @@ class Table
 {
 
     /**
-     * @var \aeqdev\APDO\Schema
+     * @var Schema
      */
     public $schema;
 
     public $name;
+    public $comment;
     public $cols;
     public $pkey;
     public $ukey;
     public $fkey;
-    public $rtable;
+    public $rkey;
     public $class_row;
 
     protected $columns;
 
     /**
-     * @param \aeqdev\APDO\Schema $schema Schema.
+     * @param Schema $schema Schema.
      */
     public function __construct(Schema $schema)
     {
@@ -40,7 +41,7 @@ class Table
      *
      * @param string $name Column name.
      * @param null $args
-     * @return null|\aeqdev\APDO\Schema\Column Column object
+     * @return null|Column Column object
      */
     public function __call($name, $args)
     {
@@ -59,7 +60,7 @@ class Table
     /**
      * Creates table statement.
      *
-     * @return \aeqdev\APDO\Schema\Statement Table statement.
+     * @return Statement Table statement.
      */
     public function statement()
     {
@@ -69,7 +70,7 @@ class Table
     /**
      * Creates table row.
      *
-     * @return \aeqdev\APDO\Schema\Row Table row object.
+     * @return Row Table row object.
      */
     public function create()
     {
@@ -81,7 +82,7 @@ class Table
      * Gets table row by primary key.
      *
      * @param int|string|array $pkey Primary key of row.
-     * @return null|\aeqdev\APDO\Schema\Row Table row object with specified prymary key or null if no row found.
+     * @return null|Row Table row object with specified prymary key or null if no row found.
      */
     public function get($pkey)
     {

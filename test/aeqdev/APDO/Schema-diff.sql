@@ -1,20 +1,22 @@
--- ALTER TABLE apdo_test_fruit DROP treeeee_id;
+
+-- ALTER TABLE apdo_test_fruit DROP treeeee;
 
 -- DROP TABLE apdo_test_drop;
 
--- ALTER TABLE apdo_test_tree MODIFY name varchar(20);
+-- ALTER TABLE apdo_test_tree MODIFY name varchar(20) COMMENT 'Name';
 
 CREATE TABLE apdo_test_tree_extra (
     id integer NOT NULL AUTO_INCREMENT,
-    height integer,
-    tree_id integer NOT NULL,
+    height integer COMMENT 'Height',
+    tree integer NOT NULL COMMENT 'Tree',
+    parent integer COMMENT 'Parent tree',
 
-    FOREIGN KEY (tree_id) REFERENCES apdo_test_tree(id),
-    UNIQUE KEY (tree_id),
+    FOREIGN KEY (parent) REFERENCES apdo_test_tree(id),
+    FOREIGN KEY (tree) REFERENCES apdo_test_tree(id),
+    UNIQUE KEY (tree),
     PRIMARY KEY (id)
-);
+) COMMENT 'Tree extra';
 
-ALTER TABLE apdo_test_fruit ADD tree_id integer;
+ALTER TABLE apdo_test_fruit ADD tree integer COMMENT 'Tree';
 
-ALTER TABLE apdo_test_fruit ADD FOREIGN KEY (tree_id) REFERENCES apdo_test_tree(id);
-
+ALTER TABLE apdo_test_fruit ADD FOREIGN KEY (tree) REFERENCES apdo_test_tree(id);

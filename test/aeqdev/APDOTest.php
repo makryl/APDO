@@ -2,11 +2,10 @@
 
 namespace aeqdev;
 
-require_once __DIR__ . '/../../aeqdev/APDO.php';
-require_once __DIR__ . '/../../aeqdev/APDO/ICache.php';
-require_once __DIR__ . '/APDO/ArraySerializeCache.php';
+use PDO;
+use test\aeqdev\APDO\ArraySerializeCache;
 
-
+require_once '../autoload.php';
 
 class APDOTest extends \PHPUnit_Framework_TestCase
 {
@@ -17,15 +16,15 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     protected $object;
 
     /**
-     * @var \aeqdev\APDO\ArraySerializeCache
+     * @var ArraySerializeCache
      */
     protected $cache;
 
     protected function setUp()
     {
         $this->object = new APDO('mysql:host=localhost;dbname=test', 'root', '', [
-            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
 
         $sql = file_get_contents(__DIR__ . '/APDO/Schema-drop.sql')
@@ -38,9 +37,9 @@ class APDOTest extends \PHPUnit_Framework_TestCase
             }
         }
 
-        $this->cache = new APDO\ArraySerializeCache();
+        $this->cache = new ArraySerializeCache();
 
-        $this->object->setFetchMode(\PDO::FETCH_ASSOC);
+        $this->object->setFetchMode(PDO::FETCH_ASSOC);
     }
 
     protected function tearDown()
@@ -75,8 +74,8 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 
     public function testExecute()
     {
-        $errmode = $this->object->pdo()->getAttribute(\PDO::ATTR_ERRMODE);
-        $this->object->pdo()->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+        $errmode = $this->object->pdo()->getAttribute(PDO::ATTR_ERRMODE);
+        $this->object->pdo()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
         $r = $this->object->statement('INSERT INTO apdo_test_fruit (id) VALUES (123)')->execute();
         $this->assertEquals(true, $r);
@@ -84,13 +83,13 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         $r = $this->object->statement('INSERT INTO apdo_test_fruit (id) VALUES (123)')->execute();
         $this->assertEquals(false, $r);
 
-        $this->object->pdo()->setAttribute(\PDO::ATTR_ERRMODE, $errmode);
+        $this->object->pdo()->setAttribute(PDO::ATTR_ERRMODE, $errmode);
     }
 
     public function testCache()
     {
         $statement = 'SELECT * FROM apdo_test_fruit ORDER BY id LIMIT 1';
-        $result = [0 => ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree_id' => 1]];
+        $result = [0 => ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree' => 1]];
 
         $r = $this->object->statement($statement)
             ->cache($this->cache)
@@ -118,21 +117,21 @@ class APDOTest extends \PHPUnit_Framework_TestCase
 FROM apdo_test_fruit
 WHERE id=?
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 1, 'name' => 'apple1', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 1, 'name' => 'apple1', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testJoin()
     {
         $r = $this->object
             ->from('apdo_test_fruit A')
-            ->join('apdo_test_tree B', 'A.tree_id=B.id')
+            ->join('apdo_test_tree B', 'A.tree=B.id')
             ->columns('A.name as fruit_name, B.name as tree_name')
             ->orderBy('A.id')
             ->fetchOne();
         $this->assertEquals(
             'SELECT A.name as fruit_name, B.name as tree_name
 FROM apdo_test_fruit A
- JOIN apdo_test_tree B ON (A.tree_id=B.id)
+ JOIN apdo_test_tree B ON (A.tree=B.id)
 ORDER BY A.id
 LIMIT 1',
             $this->object->last()->lastQuery());
@@ -150,7 +149,7 @@ LIMIT 1',
 FROM apdo_test_fruit
 WHERE id=?
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testOrWhere()
@@ -165,8 +164,8 @@ LIMIT 1', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 WHERE (id=?) OR (id=?)', $this->object->last()->lastQuery());
         $this->assertEquals([
-            ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1],
-            ['id' => 3, 'name' => 'orange', 'color' => null, 'tree_id' => 2],
+            ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1],
+            ['id' => 3, 'name' => 'orange', 'color' => null, 'tree' => 2],
         ], $r);
     }
 
@@ -183,7 +182,7 @@ FROM apdo_test_fruit
 WHERE id IN (?,?)
 ORDER BY id
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testOrKey()
@@ -198,15 +197,15 @@ LIMIT 1', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 WHERE (id IN (?,?)) OR (id IN (?,?))', $this->object->last()->lastQuery());
         $this->assertEquals([
-            ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree_id' => 1],
-            ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1],
-            ['id' => 3, 'name' => 'orange', 'color' => null, 'tree_id' => 2]
+            ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree' => 1],
+            ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1],
+            ['id' => 3, 'name' => 'orange', 'color' => null, 'tree' => 2]
         ], $r);
     }
 
     public function testOrderby()
     {
-        $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree_id) VALUES (999999, 'apple9', 1)")->execute();
+        $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree) VALUES (999999, 'apple9', 1)")->execute();
         $r = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id DESC')
@@ -216,12 +215,12 @@ WHERE (id IN (?,?)) OR (id IN (?,?))', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 ORDER BY id DESC
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 999999, 'name' => 'apple9', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 999999, 'name' => 'apple9', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testAddOrderby()
     {
-        $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree_id) VALUES (999999, 'apple9', 1)")->execute();
+        $this->object->statement("INSERT INTO apdo_test_fruit (id, name, tree) VALUES (999999, 'apple9', 1)")->execute();
         $r = $this->object
             ->from('apdo_test_fruit')
             ->addOrderBy('id', true)
@@ -231,7 +230,7 @@ LIMIT 1', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 ORDER BY id DESC
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 999999, 'name' => 'apple9', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 999999, 'name' => 'apple9', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testLimit()
@@ -261,7 +260,7 @@ FROM apdo_test_fruit
 ORDER BY id
 LIMIT 1
 OFFSET 1', $this->object->last()->lastQuery());
-        $this->assertEquals([0 => ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1]], $r);
+        $this->assertEquals([0 => ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1]], $r);
     }
 
     public function testColumns()
@@ -291,7 +290,7 @@ LIMIT 1', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 ORDER BY id
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals([0 => ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree_id' => 1]], $r);
+        $this->assertEquals([0 => ['id' => 1, 'name' => 'apple1', 'color' => null, 'tree' => 1]], $r);
     }
 
     public function testFetchPairs()
@@ -323,7 +322,7 @@ FROM apdo_test_fruit
 ORDER BY id
 LIMIT 1
 OFFSET 1', $this->object->last()->lastQuery());
-        $this->assertEquals([0 => ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree_id' => 1]], $r);
+        $this->assertEquals([0 => ['id' => 2, 'name' => 'apple2', 'color' => null, 'tree' => 1]], $r);
     }
 
     public function testFetchOne()
@@ -337,7 +336,7 @@ OFFSET 1', $this->object->last()->lastQuery());
 FROM apdo_test_fruit
 ORDER BY id
 LIMIT 1', $this->object->last()->lastQuery());
-        $this->assertEquals(['id' => 1, 'name' => 'apple1', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 1, 'name' => 'apple1', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testFetchRow()
@@ -386,11 +385,11 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
         $this->object
             ->in('apdo_test_fruit')
             ->insert([
-                ['id' => 11, 'name' => 'apple11', 'tree_id' => 1],
-                ['id' => 12, 'name' => 'apple12', 'tree_id' => 1]
+                ['id' => 11, 'name' => 'apple11', 'tree' => 1],
+                ['id' => 12, 'name' => 'apple12', 'tree' => 1]
             ]);
         $this->assertEquals(
-            'INSERT INTO apdo_test_fruit (id,name,tree_id) VALUES
+            'INSERT INTO apdo_test_fruit (id,name,tree) VALUES
 (?,?,?),
 (?,?,?)', $this->object->last()->lastQuery());
 
@@ -399,8 +398,8 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
             ->key([11, 12])
             ->fetchAll();
         $this->assertEquals([
-            ['id' => 11, 'name' => 'apple11', 'color' => null, 'tree_id' => 1],
-            ['id' => 12, 'name' => 'apple12', 'color' => null, 'tree_id' => 1]
+            ['id' => 11, 'name' => 'apple11', 'color' => null, 'tree' => 1],
+            ['id' => 12, 'name' => 'apple12', 'color' => null, 'tree' => 1]
         ], $r);
     }
 
@@ -408,7 +407,7 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
     {
         $this->object
             ->in('apdo_test_fruit')
-            ->insert(['id' => 21, 'name' => 'apple21', 'tree_id' => 1]);
+            ->insert(['id' => 21, 'name' => 'apple21', 'tree' => 1]);
 
         $this->object
             ->in('apdo_test_fruit')
@@ -425,7 +424,7 @@ WHERE id=?', $this->object->last()->lastQuery());
             ->from('apdo_test_fruit')
             ->key(21)
             ->fetchOne();
-        $this->assertEquals(['id' => 21, 'name' => 'apple22', 'color' => null, 'tree_id' => 1], $r);
+        $this->assertEquals(['id' => 21, 'name' => 'apple22', 'color' => null, 'tree' => 1], $r);
     }
 
     public function testDelete()
@@ -455,7 +454,7 @@ WHERE id=?', $this->object->last()->lastQuery());
         $fruits = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id')
-            ->fetchAll(\PDO::FETCH_OBJ);
+            ->fetchAll(PDO::FETCH_OBJ);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -463,8 +462,8 @@ ORDER BY id', $this->object->last()->lastQuery());
 
         $trees = $this->object
             ->from('apdo_test_tree')
-            ->referrers($fruits, 'fruits', 'tree', 'tree_id')
-            ->fetchAll(\PDO::FETCH_OBJ);
+            ->referrers($fruits, 'fruits', 'tree', 'tree')
+            ->fetchAll(PDO::FETCH_OBJ);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -478,7 +477,7 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
         $trees = $this->object
             ->from('apdo_test_tree')
             ->orderBy('id')
-            ->fetchAll(\PDO::FETCH_OBJ);
+            ->fetchAll(PDO::FETCH_OBJ);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -486,12 +485,12 @@ ORDER BY id', $this->object->last()->lastQuery());
 
         $fruits = $this->object
             ->from('apdo_test_fruit')
-            ->references($trees, 'fruits', 'tree', 'tree_id')
-            ->fetchAll(\PDO::FETCH_OBJ);
+            ->references($trees, 'fruits', 'tree', 'tree')
+            ->fetchAll(PDO::FETCH_OBJ);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
-WHERE tree_id IN (?,?)', $this->object->last()->lastQuery());
+WHERE tree IN (?,?)', $this->object->last()->lastQuery());
 
         $this->checkReferences($fruits, $trees);
     }

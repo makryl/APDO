@@ -10,49 +10,35 @@ class Row
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\Table
+     * @var Table
      */
     public $table;
     public $values;
 
-    protected $new;
+    protected $__new;
 
     /**
-     * @param \aeqdev\APDO\Schema\Table $table Schema table.
+     * @param Table $table Schema table.
      * @param bool $new If this flag is set to TRUE, row will be inserted on first save.
      */
     public function __construct(Table $table, $new = false)
     {
         $this->table = $table;
-        $this->new = $new;
+        $this->__new = $new;
     }
 
     /**
-     * If column with specified name exists, returns validated value of that column.
-     * Otherwise, tries to perform appropriate refs selection.
+     * Tries to create appropriate refs statement, and fetch object if needed.
      *
      * @param string $name
      * @param null $args
-     * @return null|\aeqdev\APDO\Schema\Row|\aeqdev\APDO\Schema\Statement
+     * @return null|Row|Statement Reference statement,
+     *                            or object for one to one reference,
+     *                            or null if no foreign key found.
      */
     public function __call($name, $args)
     {
-        if (isset($this->table->cols[$name])) {
-            return $this->table->{$name}()->value($this);
-        } else {
-            /* @var $refTable \aeqdev\APDO\Schema\Table */
-            $refTable = $this->table->schema->{$name};
-            if (isset($refTable)) {
-                /* @var $statement \aeqdev\APDO\Schema\Statement */
-                $statement = $this->table->schema->{$name}()->refs($this);
-
-                return isset($refTable->fkey[$this->table->name])
-                    && !isset($refTable->ukey[$refTable->fkey[$this->table->name]])
-                    ? $statement
-                    : $statement->fetchOne();
-            }
-        }
-        return null;
+        return Statement::refs($this, $name);
     }
 
     /**
@@ -67,20 +53,22 @@ class Row
 
     /**
      * Validates and saves values into database.
+     * @param array $columns Array of needed columns.
+     * @throws RowValidateException
      */
-    public function save()
+    public function save($columns = null)
     {
-        if ($this->new) {
+        if ($this->__new) {
             $pkey = $this->table->statement()
-                ->insert($this->values());
+                ->insert($this->values($columns));
             if (isset($pkey)) {
                 $this->{$this->table->pkey} = $pkey;
             }
-            $this->new = false;
+            $this->__new = false;
         } else {
             $this->table->statement()
                 ->key($this->pkey())
-                ->update($this->values());
+                ->update($this->values($columns));
         }
     }
 
@@ -89,7 +77,7 @@ class Row
      */
     public function delete()
     {
-        if (!$this->new) {
+        if (!$this->__new) {
             $this->table->statement()
                 ->key($this->pkey())
                 ->delete();
@@ -113,21 +101,27 @@ class Row
     }
 
     /**
+     * @param array $columns Array of needed columns.
+     * @throws RowValidateException
      * @return array Array of validated values of current row with column names as keys.
-     * @throws \aeqdev\APDO\Schema\RowValidateException
      */
-    public function values()
+    public function values($columns = null)
     {
         $this->values = [];
         $exceptions = [];
+        if (isset($columns)) {
+            $columns = array_flip($columns);
+        }
         foreach ($this->table->cols as $name) {
-            try {
-                $this->values[$name] = $this->table->{$name}()->value($this);
-            } catch (ColumnSkipException $e) {
-                continue;
-            } catch (\Exception $e) {
-                $exceptions[$name] = $e;
-                break;
+            if (!isset($columns) || isset($columns[$name])) {
+                try {
+                    $this->values[$name] = $this->table->{$name}()->value($this);
+                } catch (ColumnSkipException $e) {
+                    continue;
+                } catch (\Exception $e) {
+                    $exceptions[$name] = $e;
+                    break;
+                }
             }
         }
         if (!empty($exceptions)) {
@@ -140,21 +134,28 @@ class Row
 
 /**
  * Row values validate exception.
- * Contains array of exceptions throwed during validation of cells in row.
+ * Contains array of exceptions thrown during validation of cells in row.
  */
 class RowValidateException extends \Exception
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\Row
+     * @var Row
      */
     public $row;
 
     /**
-     * @var \aeqdev\APDO\Schema\ColumnValidatorException[]
+     * @var ColumnValidatorException[]
      */
     public $exceptions;
 
+    /**
+     * @param Row $row
+     * @param array $exceptions
+     * @param string $message
+     * @param int $code
+     * @param null $previous
+     */
     public function __construct(Row $row, $exceptions, $message = null, $code = 0, $previous = null)
     {
         parent::__construct($message, $code, $previous);

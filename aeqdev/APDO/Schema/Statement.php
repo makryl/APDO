@@ -2,21 +2,23 @@
 
 namespace aeqdev\APDO\Schema;
 
+use PDO;
+
 /**
  * Schema statement can set schema table parameters and work with schema table references.
  */
-class Statement extends \aeqdev\APDOStatement
+class Statement extends \aeqdev\APDO\Statement
 {
 
     /**
-     * @var \aeqdev\APDO\Schema\Table
+     * @var Table
      */
     protected $schemaTable;
 
     /**
      * Sets schema table for the statement.
      *
-     * @param \aeqdev\APDO\Schema\Table $table Schema table.
+     * @param Table $table Schema table.
      * @return static|$this Current statement.
      */
     public function schemaTable(Table $table)
@@ -24,74 +26,103 @@ class Statement extends \aeqdev\APDOStatement
         $this->schemaTable = $table;
         return $this->table($table->schema->prefix . $table->name)
             ->pkey($table->pkey)
-            ->fetchMode(\PDO::FETCH_CLASS, $table->class_row, [$table]);
+            ->fetchMode(PDO::FETCH_CLASS, $table->class_row, [$table])
+            ->handler(function($result) {
+                return new Result($this->schemaTable, $result);
+            });
     }
 
     /**
-     * Adds conditions to SELECT statement for selecting referenced data.
-     * This method chooses appropriate APDOStatement method
+     * Tries to create appropriate refs statement, and fetch object if needed.
+     *
+     * Chooses appropriate Statement method
      * (one of: referrers, referrersUnique, references, referencesUnique)
      * using data passed in argument and foreign keys of tables.
-     * If no foreign key found, marks statement as "nothing".
      *
-     * @param array|object $data Data.
-     * @return static|$this Current statement.
+     * If no appropriate foreign key found, returns null.
+     *
+     * @param Row|Result $data Data.
+     * @param string $name Reference name. Foreign key name, table name or table__fkey.
+     * @return null|Row|Statement Reference statement,
+     *                            or object for one to one reference,
+     *                            or null if no foreign key found.
      */
-    public function refs(&$data)
+    public static function refs($data, $name)
     {
-        if (empty($data)) {
-            return $this->nothing();
-        } else if ($data instanceof Row) {
-            $itemTable = $data->table;
-        } else {
-            $item = reset($data);
-            if ($item instanceof Row) {
-                $itemTable = $item->table;
-            } else {
-                return $this->nothing();
+        $statement = null;
+        $unique = false;
+        $dataFKey = false;
+        $parts = explode('__', $name);
+        if (isset($parts[1])) { // $tree->fruit__tree()
+            list($rtname, $key) = $parts;
+            $rtable = $data->table->schema->{$rtname};
+            if (
+                isset($rtable)
+                && isset($rtable->fkey[$key])
+                && $rtable->fkey[$key] == $data->table->name
+                && is_array($rtable->rkey[$data->table->name])
+            ) {
+                $unique = isset($rtable->ukey[$key]);
+                $statement = $rtable->statement()->references(
+                    $data,
+                    $name,
+                    $key,
+                    $key,
+                    $data->table->pkey,
+                    $unique
+                );
+            }
+        } else if (
+            isset($data->table->fkey[$name])
+            && is_string($data->table->rkey[$data->table->fkey[$name]])
+        ) { // $fruit->tree()
+            $rtable = $data->table->schema->{$data->table->fkey[$name]};
+            if (isset($rtable)) {
+                $unique = isset($data->table->ukey[$name]);
+                $dataFKey = true;
+                $statement = $rtable->statement()->referrers(
+                    $data,
+                    $data->table->name,
+                    $name,
+                    $name,
+                    $data->table->pkey,
+                    $unique
+                );
+            }
+        } else { // $tree->fruit()
+            $rtable = $data->table->schema->{$name};
+            if (
+                isset($rtable)
+                && isset($rtable->rkey[$data->table->name])
+                && is_string($rtable->rkey[$data->table->name])
+            ) {
+                $key = $rtable->rkey[$data->table->name];
+                $unique = isset($rtable->ukey[$key]);
+                $statement = $rtable->statement()->references(
+                    $data,
+                    $name,
+                    $key,
+                    $key,
+                    $data->table->pkey,
+                    $unique
+                );
             }
         }
-
-        if (isset($itemTable->fkey[$this->schemaTable->name])) {
-            return $this->referrers(
-                $data,
-                $itemTable->name,
-                $this->schemaTable->name,
-                $itemTable->fkey[$this->schemaTable->name],
-                $itemTable->pkey,
-                isset($itemTable->ukey[$itemTable->fkey[$this->schemaTable->name]])
-            );
-        } else if (isset($this->schemaTable->fkey[$itemTable->name])) {
-            return $this->references(
-                $data,
-                $this->schemaTable->name,
-                $itemTable->name,
-                $this->schemaTable->fkey[$itemTable->name],
-                $itemTable->pkey,
-                isset($this->schemaTable->ukey[$this->schemaTable->fkey[$itemTable->name]])
-            );
-        } else {
-            return $this->nothing();
-        }
+        return ($data instanceof Row && ($unique || $dataFKey))
+            ? $statement->fetchOne()
+            : $statement;
     }
 
     /**
-     * Creates statement on specified table with refs conditions,
-     * using data fetched from the current statement.
+     * Tries to create appropriate refs statement, and fetch object if needed.
      *
      * @param string $name
      * @param null $args
-     * @return \aeqdev\APDO\Schema\Statement
+     * @return null|Statement
      */
     public function __call($name, $args)
     {
-        /* @var $refTable \aeqdev\APDO\Schema\Table */
-        $refTable = $this->schemaTable->schema->{$name};
-        if (isset($refTable)) {
-            $r = $this->fetchAll();
-            return $this->schemaTable->schema->{$name}()->refs($r);
-        }
-        return null;
+        return $this->fetchAll()->{$name}();
     }
 
     protected function cacheGetRow($id, $fetchMode)
@@ -113,6 +144,5 @@ class Statement extends \aeqdev\APDOStatement
         }
         return $r;
     }
-
 
 }

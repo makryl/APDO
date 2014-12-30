@@ -2,6 +2,8 @@
 
 namespace aeqdev\APDO\Schema\Column;
 
+use aeqdev\APDO\Schema\Column;
+
 /**
  * Time column.
  * Adds validator that converts value to date/time in specified format.
@@ -9,7 +11,7 @@ namespace aeqdev\APDO\Schema\Column;
  * By default uses format 'c' (ISO 8601: 2004-02-12T15:19:21+00:00).
  * See http://us2.php.net/manual/function.date.php for details about format.
  */
-class Time extends \aeqdev\APDO\Schema\Column
+class Time extends Column
 {
 
     public $format = 'c';
@@ -25,6 +27,7 @@ class Time extends \aeqdev\APDO\Schema\Column
     /**
      * Sets date/time format.
      *
+     * @param string $format
      * @return static|$this Current column.
      */
     public function format($format)

@@ -10,17 +10,27 @@ class Importer
 
     public $prefix = '';
     public $suffix = '';
-    public $overrideStatementDocs = false;
-    public $uses;
     public $classSchema;
     public $classTable;
     public $classRow;
     public $classColumn;
     public $classColumnByType;
 
+    public $colBlacklist = [
+        'table',
+        'values',
+        '__new',
+    ];
+
+    public $fkeyBlacklist = [];
+
+    protected $baseDir;
+    protected $generatedDir;
     protected $file;
     protected $schema;
     protected $class;
+    protected $namespacedClass;
+    protected $namespaceGenerated;
     protected $namespace;
 
     function __construct()
@@ -39,6 +49,10 @@ class Importer
             'time'   => $this->classColumn . '\\Time',
             'date'   => $this->classColumn . '\\Date',
         ];
+
+        $this->fkeyBlacklist = $this->fkeyBlacklist
+            + get_class_methods(Statement::class)
+            + get_class_methods(Result::class);
     }
 
     /**
@@ -62,35 +76,28 @@ class Importer
     /**
      * Saves schema into file.
      *
-     * @param string $file File name to write.
      * @param string $class Schema class name (with namespace if needed).
+     * @param string $baseDir Namespace root directory.
      */
-    public function save($file, $class)
+    public function save($class, $baseDir = '.')
     {
-        $this->file = fopen($file, 'w');
-
         $class = ltrim($class, '\\');
         $nssep = strrpos($class, '\\');
         if ($nssep !== false) {
             $this->namespace = substr($class, 0, $nssep);
-            $class = substr($class, $nssep + 1);
+            $this->class = substr($class, $nssep + 1);
+            $this->namespacedClass = $this->namespace . '\\' . $this->class;
         } else {
             $this->namespace = '';
+            $this->class = $class;
+            $this->namespacedClass = $this->class;
         }
-        $this->class = $class;
+        $this->namespaceGenerated = $this->namespacedClass . '\\generated';
 
-        fwrite($this->file, "<?php\n\n");
-
-        if (!empty($this->namespace)) {
-            fwrite($this->file, "namespace {$this->namespace};\n\n");
-            $this->namespace = '\\' . $this->namespace;
-        }
-
-        if (!empty($this->uses)) {
-            foreach ($this->uses as $use) {
-                fwrite($this->file, "use $use;\n");
-            }
-            fwrite($this->file, "\n");
+        $this->baseDir = $baseDir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $this->namespace);
+        $this->generatedDir = $baseDir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $this->namespaceGenerated);
+        if (!file_exists($this->generatedDir)) {
+            mkdir($this->generatedDir, 0755, true);
         }
 
         $this->renderSchema();
@@ -99,12 +106,6 @@ class Importer
             $this->renderTable($table, $tdata);
             $this->renderRow($table, $tdata);
         }
-
-        foreach ($this->schema as $table => $tdata) {
-            $this->renderStatement($table, $tdata);
-        }
-
-        fclose($this->file);
     }
 
     protected function getClassColumnByType($type)
@@ -114,220 +115,277 @@ class Importer
 
     protected function renderSchema()
     {
-        fwrite($this->file, "/**\n");
+        $data = "<?php\n\nnamespace {$this->namespaceGenerated};\n";
+        $data .= "\n/**\n";
         if (!empty($this->schema)) {
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, " * @property {$this->namespace}\\Table{$this->suffix}_{$table} \${$table}\n");
+                $data .= " * @property \\{$this->namespacedClass}\\Table{$this->suffix}_{$table} \${$table}{$tdata['comment']}\n";
             }
-            fwrite($this->file, " *\n");
+            $data .= " *\n";
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$table} {$table}\n");
+                $data .= " * @method \\{$this->namespaceGenerated}\\Statement{$this->suffix}_{$table} {$table}{$tdata['comment']}\n";
             }
         }
-        fwrite($this->file, " */\n");
-        fwrite($this->file, "class {$this->class} extends {$this->classSchema}\n{\n");
+        $data .= " */\n";
+        $data .= "class {$this->class} extends {$this->classSchema}\n{\n";
         if (!empty($this->prefix)) {
-            fwrite($this->file, "    public \$prefix = '{$this->prefix}';\n");
+            $data .= "    public \$prefix = '{$this->prefix}';\n";
         }
         if (!empty($this->schema)) {
-            fwrite($this->file, "\n");
-            $namespace = addslashes($this->namespace);
+            $data .= "\n";
+            $namespace = addslashes($this->namespacedClass);
             foreach ($this->schema as $table => $tdata) {
-                fwrite($this->file, "    public \$class_{$table} = '{$namespace}\\\\Table{$this->suffix}_{$table}';\n");
+                $data .= "    public \$class_{$table} = '\\\\{$namespace}\\\\Table{$this->suffix}_{$table}';\n";
             }
         }
-        fwrite($this->file, "}\n\n");
+        $data .= "}\n";
+
+        file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $this->class . '.php', $data);
+
+        $classFile = $this->baseDir . DIRECTORY_SEPARATOR . $this->class . '.php';
+        if (!file_exists($classFile)) {
+            file_put_contents($classFile, "<?php\n\nnamespace {$this->namespace};\n\nclass {$this->class} extends {$this->class}\\generated\\{$this->class}\n{\n\n}\n");
+        }
     }
 
     protected function renderTable($table, $tdata)
     {
-        fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @property {$this->namespace}\\{$this->class} \$schema\n");
-        fwrite($this->file, " *\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} create\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} get\n");
+        $class = "Table{$this->suffix}_{$table}";
+
+        $data = "<?php\n\nnamespace {$this->namespaceGenerated};\n";
+        $data .= "\n/**\n";
+        $data .= " *{$tdata['comment']}\n";
+        $data .= " *\n";
+        $data .= " * @property \\{$this->namespace}\\{$this->class} \$schema\n";
+        $data .= " *\n";
+        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} create\n";
+        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} get\n";
         if (!empty($tdata['cols'])) {
-            fwrite($this->file, " *\n");
+            $data .= " *\n";
             foreach ($tdata['cols'] as $col => $cdata) {
                 $cclass = $this->getClassColumnByType($cdata['type']);
-                fwrite($this->file, " * @method $cclass $col\n");
+                $data .= " * @method $cclass $col{$cdata['comment']}\n";
             }
         }
-        fwrite($this->file, " */\n");
-        fwrite($this->file, "class Table{$this->suffix}_{$table} extends {$this->classTable}\n");
-        fwrite($this->file, "{\n");
-        fwrite($this->file, "    public \$name = '$table';\n");
+        $data .= " */\n";
+        $data .= "class {$class} extends {$this->classTable}\n";
+        $data .= "{\n";
+        $data .= "    public \$name = '$table';\n";
+        $ecomment = addslashes(trim($tdata['comment']));
+        $data .= "    public \$comment = '$ecomment';\n";
         if (!empty($tdata['pkey'])) {
             if (count($tdata['pkey']) == 1) {
-                fwrite($this->file, "    public \$pkey = '{$tdata['pkey'][0]}';\n");
+                $data .= "    public \$pkey = '{$tdata['pkey'][0]}';\n";
             } else {
-                fwrite($this->file, "    public \$pkey = ['" . implode("', '", $tdata['pkey']) . "'];\n");
+                $data .= "    public \$pkey = ['" . implode("', '", $tdata['pkey']) . "'];\n";
             }
         }
         if (!empty($tdata['ukey'])) {
-            fwrite($this->file, "    public \$ukey = [\n");
+            $data .= "    public \$ukey = [\n";
             foreach ($tdata['ukey'] as $ukey) {
-                fwrite($this->file, "        '{$ukey}' => '{$ukey}',\n");
+                $data .= "        '{$ukey}' => '{$ukey}',\n";
             }
-            fwrite($this->file, "    ];\n");
+            $data .= "    ];\n";
         }
         if (!empty($tdata['fkey'])) {
-            fwrite($this->file, "    public \$fkey = [\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, "        '$rtable' => '$fkey',\n");
+            $data .= "    public \$fkey = [\n";
+            foreach ($tdata['fkey'] as $fkey => $rtable) {
+                $data .= "        '$fkey' => '$rtable',\n";
             }
-            fwrite($this->file, "    ];\n");
-            fwrite($this->file, "    public \$rtable = [\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, "        '$fkey' => '$rtable',\n");
+            $data .= "    ];\n";
+            $data .= "    public \$rkey = [\n";
+            foreach ($tdata['rkey'] as $rtable => $fkeys) {
+                if (count($fkeys) == 1) {
+                    $fkey = reset($fkeys);
+                    $data .= "        '$rtable' => '{$fkey}',\n";
+                } else {
+                    $data .= "        '$rtable' => [\n";
+                    foreach ($fkeys as $fkey => $fkey) {
+                        $data .= "            '$fkey' => '$fkey',\n";
+                    }
+                    $data .= "        ],\n";
+                }
             }
-            fwrite($this->file, "    ];\n");
+            $data .= "    ];\n";
         }
         if (!empty($tdata['cols'])) {
-            fwrite($this->file, "    public \$cols = [\n");
+            $data .= "    public \$cols = [\n";
             foreach ($tdata['cols'] as $col => $cdata) {
-                fwrite($this->file, "        '$col' => '$col',\n");
+                $data .= "        '$col' => '$col',\n";
             }
-            fwrite($this->file, "    ];\n");
+            $data .= "    ];\n";
         }
-        fwrite($this->file, "\n");
-        $namespace = addslashes($this->namespace);
-        fwrite($this->file, "    public \$class_row = '{$namespace}\\\\Row{$this->suffix}_{$table}';\n");
-        fwrite($this->file, "\n");
+        $data .= "\n";
+        $namespace = addslashes($this->namespacedClass);
+        $data .= "    public \$class_row = '\\\\{$namespace}\\\\Row{$this->suffix}_{$table}';\n";
+        $data .= "\n";
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
                 $cclass = $this->getClassColumnByType($cdata['type']);
                 $cdef = "(new $cclass())";
 
                 if (!empty($cdata['length'])) {
-                    $cdef = $cdef . "->length({$cdata['length']})";
+                    $cdef .= "->length({$cdata['length']})";
                 }
-                if (!empty($tdata['fkey'])) {
-                    $rtable = array_search($col, $tdata['fkey']);
-                    if ($rtable !== false) {
-                        $cdef = $cdef . "->fkey()";
-                    }
+                if (isset($tdata['fkey']) && isset($tdata['fkey'][$col])) {
+                    $cdef .= "->fkey()";
                 }
                 if (
                     empty($cdata['null'])
                     && !empty($tdata['pkey'])
                     && (!in_array($col, $tdata['pkey']) || count($tdata['pkey']) > 1)
                 ) {
-                    $cdef = $cdef . "->required()";
+                    $cdef .= "->required()";
                 }
-                fwrite($this->file, "    protected function column_{$col}() { return $cdef; }\n");
+                if (!empty($cdata['comment'])) {
+                    $ecomment = addslashes(trim($cdata['comment']));
+                    $cdef .= "->comment('$ecomment')";
+                }
+                $data .= "    protected function column_{$col}() { return $cdef; }\n";
             }
         }
-        fwrite($this->file, "}\n\n");
+        $data .= "}\n";
+
+        $data .= $this->renderStatement($table, $tdata);
+        $data .= $this->renderResult($table, $tdata);
+
+        file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $class . '.php', $data);
+
+        $classFile = $this->baseDir . DIRECTORY_SEPARATOR . $this->class . DIRECTORY_SEPARATOR . $class . '.php';
+        if (!file_exists($classFile)) {
+            file_put_contents($classFile, "<?php\n\nnamespace {$this->namespacedClass};\n\nclass $class extends generated\\$class\n{\n\n}\n");
+        }
     }
 
     protected function renderRow($table, $tdata)
     {
-        fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @property {$this->namespace}\\Table{$this->suffix}_{$table} \$table\n");
-        if (!empty($tdata['fkey'])) {
-            fwrite($this->file, " *\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable} {$rtable}\n");
-            }
-        }
-        if (!empty($tdata['refs'])) {
-            fwrite($this->file, " *\n");
-            foreach ($tdata['refs'] as $rtable) {
-                if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable} {$rtable}\n");
-                } else {
-                    fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$rtable}[] {$rtable}\n");
-                }
-            }
-        }
-        fwrite($this->file, " */\n");
-        fwrite($this->file, "class Row{$this->suffix}_{$table} extends {$this->classRow}\n");
-        fwrite($this->file, "{\n");
+        $class = "Row{$this->suffix}_{$table}";
+
+        $data = "<?php\n\nnamespace {$this->namespaceGenerated};\n";
+        $data .= "\n/**\n";
+        $data .= " *{$tdata['comment']}\n";
+        $data .= " *\n";
+        $data .= " * @property \\{$this->namespacedClass}\\Table{$this->suffix}_{$table} \$table\n";
+        $data .= $this->renderRefsMethods($tdata, true);
+        $data .= " */\n";
+        $data .= "class {$class} extends {$this->classRow}\n";
+        $data .= "{\n";
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
-                fwrite($this->file, "    public \${$col};\n");
-            }
-        }
-        if (!empty($tdata['fkey'])) {
-            fwrite($this->file, "\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable} */\n");
-                fwrite($this->file, "    public \${$rtable};\n");
+                $ctype = in_array($cdata['type'], [
+                    'bool',
+                    'int',
+                    'float',
+                    'string',
+                ]) ? $cdata['type'] : 'string';
+                if (isset($tdata['fkey'][$col])) {
+                    $data .= "    /** @var $ctype|\\{$this->namespacedClass}\\Row{$this->suffix}_{$tdata['fkey'][$col]}{$cdata['comment']} */\n";
+
+                } else {
+                    $data .= "    /** @var $ctype{$cdata['comment']} */\n";
+                }
+                $data .= "    public \${$col};\n";
             }
         }
         if (!empty($tdata['refs'])) {
-            fwrite($this->file, "\n");
-            foreach ($tdata['refs'] as $rtable) {
-                if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable} */\n");
-                    fwrite($this->file, "    public \${$rtable};\n");
+            $data .= "\n";
+            foreach ($tdata['refs'] as $rtable => $fkeys) {
+                $comment = $this->schema[$rtable]['comment'];
+                if (count($fkeys) == 1) {
+                    $fkey = reset($fkeys);
+                    if (isset($this->schema[$rtable]['ukey'][$fkey])) {
+                        $data .= "    /** @var \\{$this->namespacedClass}\\Row{$this->suffix}_{$rtable}{$comment} */\n";
+                        $data .= "    public \${$rtable};\n";
+                    } else {
+                        $data .= "    /** @var \\{$this->namespacedClass}\\Row{$this->suffix}_{$rtable}[]{$comment} */\n";
+                        $data .= "    public \${$rtable} = [];\n";
+                    }
                 } else {
-                    fwrite($this->file, "    /** @var {$this->namespace}\\Row{$this->suffix}_{$rtable}[] */\n");
-                    fwrite($this->file, "    public \${$rtable} = [];\n");
+                    foreach ($fkeys as $fkey) {
+                        $fcomment = $comment . ' (' . trim($this->schema[$rtable]['cols'][$fkey]['comment']) . ')';
+                        if (isset($this->schema[$rtable]['ukey'][$fkey])) {
+                            $data .= "    /** @var \\{$this->namespacedClass}\\Row{$this->suffix}_{$rtable}{$fcomment} */\n";
+                            $data .= "    public \${$rtable}__{$fkey};\n";
+                        } else {
+                            $data .= "    /** @var \\{$this->namespacedClass}\\Row{$this->suffix}_{$rtable}[]{$fcomment} */\n";
+                            $data .= "    public \${$rtable}__{$fkey} = [];\n";
+                        }
+                    }
                 }
             }
         }
-        fwrite($this->file, "}\n\n");
+        $data .= "}\n";
+
+        file_put_contents($this->generatedDir . DIRECTORY_SEPARATOR . $class . '.php', $data);
+
+        $classFile = $this->baseDir . DIRECTORY_SEPARATOR . $this->class . DIRECTORY_SEPARATOR . $class . '.php';
+        if (!file_exists($classFile)) {
+            file_put_contents($classFile, "<?php\n\nnamespace {$this->namespacedClass};\n\nclass $class extends generated\\$class\n{\n\n}\n");
+        }
     }
 
     protected function renderStatement($table, $tdata)
     {
-        fwrite($this->file, "/**\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table}[] fetchAll(\$fetchMode = null, \$fetchArg = null, \$fetchCtorArgs = null)\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table}[] fetchPage(\$page = 1)\n");
-        fwrite($this->file, " * @method {$this->namespace}\\Row{$this->suffix}_{$table} fetchOne(\$fetchMode = null, \$fetchArg = null, \$fetchCtorArgs = null)\n");
-        if ($this->overrideStatementDocs) {
-            fwrite($this->file, " *\n");
-            foreach ([
-                'log',
-                'cache',
-                'nothing',
-                'table',
-                'pkey',
-                'fetchMode',
-                'join',
-                'leftJoin',
-                'where',
-                'orWhere',
-                'key',
-                'orKey',
-                'groupBy',
-                'having',
-                'orderBy',
-                'addOrderBy',
-                'limit',
-                'offset',
-                'fields',
-                'handler',
-                'referrers',
-                'references',
-                'referrersUnique',
-                'referencesUnique',
-                'refs',
-            ] as $method) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$table} $method\n");
-            }
-        }
+        $data = "\n/**\n";
+        $data .= " *{$tdata['comment']}\n";
+        $data .= " *\n";
+        $data .= " * @method \\{$this->namespaceGenerated}\\Result{$this->suffix}_{$table} fetchAll\n";
+        $data .= " * @method \\{$this->namespaceGenerated}\\Result{$this->suffix}_{$table} fetchPage\n";
+        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} fetchOne\n";
+        $data .= $this->renderRefsMethods($tdata);
+        $data .= " */\n";
+        $namespace = __NAMESPACE__;
+        $data .= "class Statement{$this->suffix}_{$table} extends \\{$namespace}\\Statement {}\n";
+
+        return $data;
+    }
+
+    protected function renderResult($table, $tdata)
+    {
+        $data = "\n/**\n";
+        $data .= " *{$tdata['comment']}\n";
+        $data .= $this->renderRefsMethods($tdata);
+        $data .= " */\n";
+        $namespace = __NAMESPACE__;
+        $data .= "class Result{$this->suffix}_{$table} extends \\{$namespace}\\Result {}\n";
+
+        return $data;
+    }
+
+    protected function renderRefsMethods($tdata, $isRow = false) {
+        $data = '';
         if (!empty($tdata['fkey'])) {
-            fwrite($this->file, " *\n");
-            foreach ($tdata['fkey'] as $rtable => $fkey) {
-                fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable} {$rtable}\n");
+            $data .= " *\n";
+            foreach ($tdata['fkey'] as $fkey => $rtable) {
+                $rclass = '\\' . $this->namespacedClass . '\\'
+                    . ($isRow ? 'Row' : 'generated\\Statement')
+                    . $this->suffix . '_' . $rtable;
+                $data .= " * @method {$rclass} {$fkey}{$tdata['cols'][$fkey]['comment']}\n";
             }
         }
         if (!empty($tdata['refs'])) {
-            fwrite($this->file, " *\n");
-            foreach ($tdata['refs'] as $rtable) {
-                if (isset($this->schema[$rtable]['ukey'][$this->schema[$rtable]['fkey'][$table]])) {
-                    fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable} {$rtable}\n");
+            $data .= " *\n";
+            foreach ($tdata['refs'] as $rtable => $fkeys) {
+                $comment = $this->schema[$rtable]['comment'];
+                if (count($fkeys) == 1) {
+                    $fkey = reset($fkeys);
+                    $rclass = '\\' . $this->namespacedClass . '\\'
+                        . ($isRow && isset($this->schema[$rtable]['ukey'][$fkey]) ? 'Row' : 'generated\\Statement')
+                        . $this->suffix . '_' . $rtable;
+                    $data .= " * @method {$rclass} {$rtable}{$comment}\n";
                 } else {
-                    fwrite($this->file, " * @method {$this->namespace}\\Statement{$this->suffix}_{$rtable}[] {$rtable}\n");
+                    foreach ($fkeys as $fkey) {
+                        $fcomment = $comment . ' (' . trim($this->schema[$rtable]['cols'][$fkey]['comment']) . ')';
+                        $rclass = '\\' . $this->namespacedClass . '\\'
+                            . ($isRow && isset($this->schema[$rtable]['ukey'][$fkey]) ? 'Row' : 'generated\\Statement')
+                            . $this->suffix . '_' . $rtable;
+                        $data .= " * @method {$rclass} {$rtable}__{$fkey}{$fcomment}\n";
+                    }
                 }
             }
         }
-        fwrite($this->file, " */\n");
-        $namespace = __NAMESPACE__;
-        fwrite($this->file, "class Statement{$this->suffix}_{$table} extends \\{$namespace}\\Statement {}\n\n");
+
+        return $data;
     }
 
     /**
@@ -352,13 +410,15 @@ class Importer
         foreach (explode(';', $sql) as $st) {
 
             # create table
-            if (!preg_match('/create\s+table\s+(if\s+not\s+exists\s+)?(\w+)\s*\((.*)\)/is', $st, $m)) {
+            if (!preg_match('/create\s+table\s+(if\s+not\s+exists\s+)?(\w+)\s*\((.*)\)(.+comment\s+["\']([^"\']+)["\'])?/is', $st, $m)) {
                 continue;
             }
 
             $tname = substr($m[2], $prefixLength);
             $tdef = $m[3];
-            $table = [];
+            $table = [
+                'comment' => isset($m[5]) ? ' ' . trim($m[5]) : '',
+            ];
 
             # columns
             foreach (preg_split('/,\s*[\r\n]+/', $tdef) as $def) {
@@ -380,8 +440,9 @@ class Importer
                         continue;
                     }
                     $rtable = substr($m[2], $prefixLength);
-                    $table['fkey'][$rtable] = $m[1];
-                    $this->schema[$rtable]['refs'][$tname] = $tname;
+                    $table['fkey'][$m[1]] = $rtable;
+                    $table['rkey'][$rtable][$m[1]] = $m[1];
+                    $this->schema[$rtable]['refs'][$tname][$m[1]] = $m[1];
 
                 # key
                 } else if (preg_match('/^\s*key\s+/i', $def, $m)) {
@@ -439,6 +500,16 @@ class Importer
                         $rtable = substr($m[1], $prefixLength);
                         $table['fkey'][$rtable] = $cname;
                         $this->schema[$rtable]['refs'][$tname] = $tname;
+                    }
+
+                    # comment
+                    if (
+                        preg_match('/comment\s+\'([^\']+)\'/i', $cdef, $m)
+                        || preg_match('/comment\s+"([^"]+)"/i', $cdef, $m)
+                    ) {
+                        $col['comment'] = ' ' . trim($m[1]);
+                    } else {
+                        $col['comment'] = '';
                     }
 
                     $table['cols'][$cname] = $col;
