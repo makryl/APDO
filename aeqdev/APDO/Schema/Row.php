@@ -20,11 +20,18 @@ class Row
     /**
      * @param Table $table Schema table.
      * @param bool $new If this flag is set to TRUE, row will be inserted on first save.
+     * @param array $values Field values of row.
      */
-    public function __construct(Table $table, $new = false)
+    public function __construct(Table $table, $new = false, $values = [])
     {
         $this->table = $table;
         $this->__new = $new;
+
+        foreach ($values as $name => $value) {
+            if (isset($table->cols[$name])) {
+                $this->{$name} = $value;
+            }
+        }
     }
 
     /**

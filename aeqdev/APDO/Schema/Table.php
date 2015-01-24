@@ -70,19 +70,20 @@ class Table
     /**
      * Creates table row.
      *
+     * @param array $values Set field values of new row.
      * @return Row Table row object.
      */
-    public function create()
+    public function create($values = [])
     {
         $classRow = $this->class_row;
-        return new $classRow($this, true);
+        return new $classRow($this, true, $values);
     }
 
     /**
      * Gets table row by primary key.
      *
      * @param int|string|array $pkey Primary key of row.
-     * @return null|Row Table row object with specified prymary key or null if no row found.
+     * @return null|Row Table row object with specified primary key or null if no row found.
      */
     public function get($pkey)
     {
