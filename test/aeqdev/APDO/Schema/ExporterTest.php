@@ -3,9 +3,9 @@
 namespace aeqdev\APDO\Schema;
 
 use PDO;
-use test\aeqdev\APDO\Schema;
+use test\aeqdev\APDO\TestSchema;
 
-require_once '../../../autoload.php';
+require_once __DIR__ . '/../../../autoload.php';
 
 class ExporterTest extends \PHPUnit_Framework_TestCase
 {
@@ -16,7 +16,7 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
     protected $object;
 
     /**
-     * @var Schema
+     * @var TestSchema
      */
     protected $schema;
     protected $schemaInternal;
@@ -28,7 +28,7 @@ class ExporterTest extends \PHPUnit_Framework_TestCase
 
         $this->schemaInternal = include __DIR__ . '/../SchemaInternal.php';
 
-        $this->schema = new Schema('mysql:host=localhost;dbname=test', 'root', 'root', [
+        $this->schema = new TestSchema('mysql:host=localhost;dbname=test', 'root', 'root', [
             PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);

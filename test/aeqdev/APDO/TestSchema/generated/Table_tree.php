@@ -25,6 +25,6 @@ class Table_tree extends \aeqdev\APDO\Schema\Table
 
     public $class_row = '\\test\\aeqdev\\APDO\\TestSchema\\Row_tree';
 
-    protected function column_id() { return (new \aeqdev\APDO\Schema\Column\Int()); }
+    protected function column_id() { return (new \aeqdev\APDO\Schema\Column\Int())->nullSkip(); }
     protected function column_name() { return (new \aeqdev\APDO\Schema\Column\String())->length(20)->comment('Name'); }
 }

@@ -5,7 +5,8 @@
 
 -- ALTER TABLE apdo_test_tree MODIFY name varchar(20) COMMENT 'Name';
 
-CREATE TABLE apdo_test_tree_extra (
+CREATE TABLE apdo_test_tree_extra
+(
     id integer NOT NULL AUTO_INCREMENT,
     height integer COMMENT 'Height',
     tree integer NOT NULL COMMENT 'Tree',

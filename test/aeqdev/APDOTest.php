@@ -5,7 +5,7 @@ namespace aeqdev;
 use PDO;
 use test\aeqdev\APDO\ArraySerializeCache;
 
-require_once '../autoload.php';
+require_once __DIR__ . '/../autoload.php';
 
 class APDOTest extends \PHPUnit_Framework_TestCase
 {
@@ -52,6 +52,8 @@ class APDOTest extends \PHPUnit_Framework_TestCase
                     $this->object->statement($statement)->execute();
                 }
             }
+
+            $this->object->close();
         }
     }
 

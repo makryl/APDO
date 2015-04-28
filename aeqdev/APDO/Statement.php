@@ -71,6 +71,22 @@ class Statement
     }
 
     /**
+     * @return Options                      Options object of current statement.
+     */
+    public function options()
+    {
+        return $this->options;
+    }
+
+    /**
+     * @return array                        Arguments of current statement.
+     */
+    public function args()
+    {
+        return $this->args;
+    }
+
+    /**
      * Adds statement and it's arguments to the log.
      *
      * @param string        $statement      SQL statement

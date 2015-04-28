@@ -2,7 +2,7 @@
 
 namespace aeqdev\APDO\Schema;
 
-require_once '../../../autoload.php';
+require_once __DIR__ . '/../../../autoload.php';
 
 class ImporterTest extends \PHPUnit_Framework_TestCase
 {

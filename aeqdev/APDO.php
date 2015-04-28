@@ -59,6 +59,17 @@ class APDO
     }
 
     /**
+     * Close connection.
+     *
+     * PDO closes if no links to PDO object exists.
+     */
+    public function close()
+    {
+        $this->pdo = null;
+    }
+
+
+    /**
      * Returns PDO object.
      * At first call creates PDO (and establishes connection to database).
      *

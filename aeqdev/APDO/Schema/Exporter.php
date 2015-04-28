@@ -17,7 +17,15 @@ class Exporter
      * @var Schema
      */
     public $readSchema;
-    public $typeByClassColumn;
+    public $typeByClassColumn = [
+        Column\Int::class    => 'int',
+        Column\Float::class  => 'float',
+        Column\Bool::class   => 'bool',
+        Column\String::class => 'string',
+        Column\Text::class   => 'text',
+        Column\Time::class   => 'time',
+        Column\Date::class   => 'date',
+    ];
     public $sqlTypes = [
         'int'    => 'integer',
         'float'  => 'float',
@@ -31,20 +39,6 @@ class Exporter
     protected $sql;
     protected $schema;
     protected $compare;
-
-    public function __construct()
-    {
-        $ns = __NAMESPACE__ . '\\Column\\';
-        $this->typeByClassColumn = [
-            $ns . 'Int'    => 'int',
-            $ns . 'Float'  => 'float',
-            $ns . 'Bool'   => 'bool',
-            $ns . 'String' => 'string',
-            $ns . 'Text'   => 'text',
-            $ns . 'Time'   => 'time',
-            $ns . 'Date'   => 'date',
-        ];
-    }
 
     /**
      * @return array Schema in internal format.
@@ -93,6 +87,8 @@ class Exporter
     {
         $this->readSchema = $schema;
 
+        $reversedTypeByClassColumn = array_reverse($this->typeByClassColumn, true);
+
         foreach ($schema as $property => $tclass) {
             if (substr($property, 0, 6) != 'class_') {
                 continue;
@@ -109,7 +105,13 @@ class Exporter
                     /** @var Column $col */
                     $col = $table->{$cname}();
 
-                    $this->schema[$tname]['cols'][$cname]['type'] = $this->typeByClassColumn[get_class($col)];
+                    $ctype = 'string';
+                    foreach ($reversedTypeByClassColumn as $class => $type) {
+                        if ($col instanceof $class) {
+                            $ctype = $type;
+                        }
+                    }
+                    $this->schema[$tname]['cols'][$cname]['type'] = $ctype;
 
                     if (!empty($col->length)) {
                         $this->schema[$tname]['cols'][$cname]['length'] = $col->length;
@@ -165,7 +167,7 @@ class Exporter
 
     protected function renderTable($tablePrefix, $tname, $tdata)
     {
-        $this->sql .= "\nCREATE TABLE {$tablePrefix}$tname (\n";
+        $this->sql .= "\nCREATE TABLE {$tablePrefix}$tname\n(\n";
         $prefix = "    ";
         $suffix = ",\n";
 

@@ -10,16 +10,24 @@ class Importer
 
     public $prefix = '';
     public $suffix = '';
-    public $classSchema;
-    public $classTable;
-    public $classRow;
-    public $classColumn;
-    public $classColumnByType;
+    public $classSchema = __NAMESPACE__;
+    public $classTable  = Table::class;
+    public $classRow    = Row::class;
+    public $classColumn = Column::class;
+    public $classColumnByType = [
+        'int'    => Column\Int::class,
+        'float'  => Column\Float::class,
+        'bool'   => Column\Bool::class,
+        'string' => Column\String::class,
+        'text'   => Column\Text::class,
+        'time'   => Column\Time::class,
+        'date'   => Column\Date::class,
+    ];
 
     public $colBlacklist = [
         'table',
         'values',
-        '__new',
+        '_new',
     ];
 
     public $fkeyBlacklist = [];
@@ -35,21 +43,6 @@ class Importer
 
     function __construct()
     {
-        $this->classSchema = '\\' . __NAMESPACE__;
-        $this->classTable  = '\\' . __NAMESPACE__ . '\\Table';
-        $this->classRow    = '\\' . __NAMESPACE__ . '\\Row';
-        $this->classColumn = '\\' . __NAMESPACE__ . '\\Column';
-
-        $this->classColumnByType = [
-            'int'    => $this->classColumn . '\\Int',
-            'float'  => $this->classColumn . '\\Float',
-            'bool'   => $this->classColumn . '\\Bool',
-            'string' => $this->classColumn . '\\String',
-            'text'   => $this->classColumn . '\\Text',
-            'time'   => $this->classColumn . '\\Time',
-            'date'   => $this->classColumn . '\\Date',
-        ];
-
         $this->fkeyBlacklist = $this->fkeyBlacklist
             + get_class_methods(Statement::class)
             + get_class_methods(Result::class);
@@ -112,7 +105,7 @@ class Importer
 
     protected function getClassColumnByType($type)
     {
-        return isset($this->classColumnByType[$type]) ? $this->classColumnByType[$type] : $this->classColumn;
+        return '\\' . (isset($this->classColumnByType[$type]) ? $this->classColumnByType[$type] : $this->classColumn);
     }
 
     protected function renderSchema()
@@ -129,7 +122,7 @@ class Importer
             }
         }
         $data .= " */\n";
-        $data .= "class {$this->class} extends {$this->classSchema}\n{\n";
+        $data .= "class {$this->class} extends \\{$this->classSchema}\n{\n";
         if (!empty($this->prefix)) {
             $data .= "    public \$prefix = '{$this->prefix}';\n";
         }
@@ -146,7 +139,12 @@ class Importer
 
         $classFile = $this->baseDir . DIRECTORY_SEPARATOR . $this->class . '.php';
         if (!file_exists($classFile)) {
-            file_put_contents($classFile, "<?php\n\nnamespace {$this->namespace};\n\nclass {$this->class} extends {$this->class}\\generated\\{$this->class}\n{\n\n}\n");
+            $data = "<?php\n\n";
+            if (!empty($this->namespace)) {
+                $data .= "namespace {$this->namespace};\n\n";
+            }
+            $data .= "class {$this->class} extends {$this->class}\\generated\\{$this->class}\n{\n\n}\n";
+            file_put_contents($classFile, $data);
         }
     }
 
@@ -158,7 +156,7 @@ class Importer
         $data .= "\n/**\n";
         $data .= " *{$tdata['comment']}\n";
         $data .= " *\n";
-        $data .= " * @property \\{$this->namespace}\\{$this->class} \$schema\n";
+        $data .= " * @property \\{$this->namespacedClass} \$schema\n";
         $data .= " *\n";
         $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} create\n";
         $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} get\n";
@@ -170,7 +168,7 @@ class Importer
             }
         }
         $data .= " */\n";
-        $data .= "class {$class} extends {$this->classTable}\n";
+        $data .= "class {$class} extends \\{$this->classTable}\n";
         $data .= "{\n";
         $data .= "    public \$name = '$table';\n";
         $ecomment = addslashes(trim($tdata['comment']));
@@ -226,6 +224,9 @@ class Importer
                 $cclass = $this->getClassColumnByType($cdata['type']);
                 $cdef = "(new $cclass())";
 
+                if (isset($tdata['pkey']) && in_array($col, $tdata['pkey']) && count($tdata['pkey']) == 1) {
+                    $cdef .= "->nullSkip()";
+                }
                 if (!empty($cdata['length'])) {
                     $cdef .= "->length({$cdata['length']})";
                 }
@@ -267,7 +268,7 @@ class Importer
         $data .= " * @property \\{$this->namespacedClass}\\Table{$this->suffix}_{$table} \$table\n";
         $data .= $this->renderRefsMethods($tdata, true);
         $data .= " */\n";
-        $data .= "class {$class} extends {$this->classRow}\n";
+        $data .= "class {$class} extends \\{$this->classRow}\n";
         $data .= "{\n";
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -407,7 +408,7 @@ class Importer
         $sql = str_replace(['`', '"'], '', $sql);
 
         # comments
-        $sql = preg_replace('/--.*$/', '', $sql);
+        $sql = preg_replace('/([\r\n]+)\s*--.*[\r\n]+/', '$1', $sql);
 
         $sql = trim($sql);
 
@@ -415,18 +416,44 @@ class Importer
         foreach (explode(';', $sql) as $st) {
 
             # create table
-            if (!preg_match('/create\s+table\s+(if\s+not\s+exists\s+)?(\w+)\s*\((.*)\)(.+comment\s+["\']([^"\']+)["\'])?/is', $st, $m)) {
+            if (!preg_match('/'
+                . 'create\s+table\s+'
+                . '(if\s+not\s+exists\s+)?'
+                . '(\w+)\s*'
+                . '(--([^\r\n]+)[\r\n]+)?\s*'
+                . '\((.*)\)'
+                . '(.+comment\s+["\']([^"\']+)["\'])?'
+                . '/is', $st, $m)
+            ) {
                 continue;
             }
 
             $tname = substr($m[2], $prefixLength);
-            $tdef = $m[3];
+            $tdef = $m[5];
             $table = [
-                'comment' => isset($m[5]) ? ' ' . trim($m[5]) : '',
+                'comment' => (
+                    isset($m[7])
+                        ? ' ' . trim($m[7])
+                        : (
+                            isset($m[4])
+                                ? ' ' . trim($m[4])
+                                : ''
+                        )
+                    )
             ];
 
             # columns
-            foreach (preg_split('/,\s*[\r\n]+/', $tdef) as $def) {
+            $cname = null;
+
+            foreach (preg_split('/(,\s*|,\s*--\s*[^\r\n]*)[\r\n]+/s', $tdef, -1, PREG_SPLIT_DELIM_CAPTURE) as $def) {
+                if (!empty($def) && $def[0] == ',') {
+                    # comment after comma
+                    if (preg_match('/^,\s*--\s*(.*)$/', $def, $m)) {
+                        if (isset($cname)) {
+                            $table['cols'][$cname]['comment'] = ' ' . trim($m[1]);
+                        }
+                    }
+                }
 
                 # primary key
                 if (preg_match('/primary\s+key\s*\((.*)\)/i', $def, $m)) {

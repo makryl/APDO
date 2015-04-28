@@ -4,15 +4,15 @@ namespace aeqdev\APDO\Schema;
 
 use PDO;
 use test\aeqdev\APDO\ArraySerializeCache;
-use test\aeqdev\APDO\Schema;
+use test\aeqdev\APDO\TestSchema;
 
-require_once '../../autoload.php';
+require_once __DIR__ . '/../../autoload.php';
 
 class SchemaTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Schema
+     * @var TestSchema
      */
     protected $object;
 
@@ -23,7 +23,7 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->object = new Schema('mysql:host=localhost;dbname=test', 'root', '', [
+        $this->object = new TestSchema('mysql:host=localhost;dbname=test', 'root', '', [
             PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
@@ -109,15 +109,15 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
     public function testStatementFetchAll()
     {
         foreach ($this->object->tree()->fetchAll() as $tree) {
-            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_tree', $tree);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\TestSchema\\Row_tree', $tree);
         }
 
         foreach ($this->object->tree_extra()->fetchAll() as $tree_extra) {
-            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_tree_extra', $tree_extra);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\TestSchema\\Row_tree_extra', $tree_extra);
         }
 
         foreach ($this->object->fruit()->fetchAll() as $fruit) {
-            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\Row_fruit', $fruit);
+            $this->assertInstanceOf('\\test\\aeqdev\\APDO\\TestSchema\\Row_fruit', $fruit);
         }
     }
 

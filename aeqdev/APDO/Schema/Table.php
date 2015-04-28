@@ -71,12 +71,13 @@ class Table
      * Creates table row.
      *
      * @param array $values Set field values of new row.
+     * @param bool $new If this flag is set to TRUE, row will be inserted on first save.
      * @return Row Table row object.
      */
-    public function create($values = [])
+    public function create($values = [], $new = true)
     {
         $classRow = $this->class_row;
-        return new $classRow($this, true, $values);
+        return new $classRow($this, $new, $values);
     }
 
     /**

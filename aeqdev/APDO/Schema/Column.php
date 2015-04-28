@@ -49,7 +49,7 @@ class Column
     /**
      * Adds validator to the column.
      *
-     * @param \callback $callback Validator function ($value, $row, $column)
+     * @param callable $callback Validator function ($value, $row, $column)
      * @return static|$this Current column.
      */
     public function addValidator($callback)
@@ -146,7 +146,7 @@ class Column
      * @throws ColumnSkipException
      * @return static|$this Current column.
      */
-    function emptySkip()
+    public function emptySkip()
     {
         return $this->addValidator(function($value, $row) {
             if (empty($value)) {
@@ -163,7 +163,7 @@ class Column
      * @throws ColumnSkipException
      * @return static|$this Current column.
      */
-    function nullSkip()
+    public function nullSkip()
     {
         return $this->addValidator(function($value, $row) {
             if (!isset($value)) {
@@ -182,7 +182,7 @@ class Column
      * @throws ColumnValidatorException
      * @return static|$this Current column.
      */
-    function fkey($error_message = null)
+    public function fkey($error_message = null)
     {
         return $this->addValidator(function($value, $row) use ($error_message) {
             /** @var $row Row */

@@ -13,9 +13,8 @@ class Row
      * @var Table
      */
     public $table;
-    public $values;
 
-    protected $__new;
+    protected $_new;
 
     /**
      * @param Table $table Schema table.
@@ -25,13 +24,8 @@ class Row
     public function __construct(Table $table, $new = false, $values = [])
     {
         $this->table = $table;
-        $this->__new = $new;
-
-        foreach ($values as $name => $value) {
-            if (isset($table->cols[$name])) {
-                $this->{$name} = $value;
-            }
-        }
+        $this->_new = $new;
+        $this->data($values);
     }
 
     /**
@@ -59,24 +53,60 @@ class Row
     }
 
     /**
+     * @return bool True if row is new and not yet saved to database.
+     */
+    public function isNew()
+    {
+        return $this->_new;
+    }
+
+    /**
      * Validates and saves values into database.
+     *
      * @param array $columns Array of needed columns.
      * @throws RowValidateException
      */
     public function save($columns = null)
     {
-        if ($this->__new) {
+        $values = $this->values($columns);
+        if ($this->_new) {
             $pkey = $this->table->statement()
-                ->insert($this->values($columns));
+                ->insert($values);
             if (isset($pkey)) {
                 $this->{$this->table->pkey} = $pkey;
             }
-            $this->__new = false;
+            $this->_new = false;
         } else {
             $this->table->statement()
                 ->key($this->pkey())
-                ->update($this->values($columns));
+                ->update($values);
         }
+        $this->data($values);
+    }
+
+    /**
+     * Set field values of row.
+     *
+     * @param array $values Field values of row.
+     */
+    public function data($values)
+    {
+        foreach ($values as $name => $value) {
+            if (isset($this->table->cols[$name])) {
+                $this->{$name} = $value;
+            }
+        }
+    }
+
+    /**
+     * Set field values and saves row.
+     *
+     * @param array $values Field values of row.
+     */
+    public function saveData($values)
+    {
+        $this->data($values);
+        $this->save(array_keys($values));
     }
 
     /**
@@ -84,7 +114,7 @@ class Row
      */
     public function delete()
     {
-        if (!$this->__new) {
+        if (!$this->_new) {
             $this->table->statement()
                 ->key($this->pkey())
                 ->delete();
@@ -92,6 +122,8 @@ class Row
     }
 
     /**
+     * Gets primary key value.
+     *
      * @return int|string|array Primary key of current row.
      */
     public function pkey()
@@ -108,13 +140,15 @@ class Row
     }
 
     /**
+     * Get array of validated field values.
+     *
      * @param array $columns Array of needed columns.
      * @throws RowValidateException
      * @return array Array of validated values of current row with column names as keys.
      */
     public function values($columns = null)
     {
-        $this->values = [];
+        $values = [];
         $exceptions = [];
         if (isset($columns)) {
             $columns = array_flip($columns);
@@ -122,19 +156,19 @@ class Row
         foreach ($this->table->cols as $name) {
             if (!isset($columns) || isset($columns[$name])) {
                 try {
-                    $this->values[$name] = $this->table->{$name}()->value($this);
+                    $values[$name] = $this->table->{$name}()->value($this);
                 } catch (ColumnSkipException $e) {
                     continue;
                 } catch (\Exception $e) {
                     $exceptions[$name] = $e;
-                    break;
+                    continue;
                 }
             }
         }
         if (!empty($exceptions)) {
             throw new RowValidateException($this, $exceptions);
         }
-        return $this->values;
+        return $values;
     }
 
 }
@@ -167,7 +201,7 @@ class RowValidateException extends \Exception
     {
         parent::__construct($message, $code, $previous);
         $this->row = $row;
-        $this->exceptions = $exceptions;
+    $this->exceptions = $exceptions;
     }
 
     public function __toString() {
@@ -177,6 +211,5 @@ class RowValidateException extends \Exception
         }
         return $s;
     }
-
 
 }

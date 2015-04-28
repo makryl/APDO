@@ -1,12 +1,14 @@
 
-CREATE TABLE apdo_test_tree (
+CREATE TABLE apdo_test_tree
+(
     id integer NOT NULL AUTO_INCREMENT,
     name varchar(20) COMMENT 'Name',
 
     PRIMARY KEY (id)
 ) COMMENT 'Tree';
 
-CREATE TABLE apdo_test_tree_extra (
+CREATE TABLE apdo_test_tree_extra
+(
     id integer NOT NULL AUTO_INCREMENT,
     height integer COMMENT 'Height',
     tree integer NOT NULL COMMENT 'Tree',
@@ -18,7 +20,8 @@ CREATE TABLE apdo_test_tree_extra (
     PRIMARY KEY (id)
 ) COMMENT 'Tree extra';
 
-CREATE TABLE apdo_test_fruit (
+CREATE TABLE apdo_test_fruit
+(
     id integer NOT NULL AUTO_INCREMENT,
     name varchar(20) NOT NULL COMMENT 'Name',
     color varchar(5) COMMENT 'Color',
