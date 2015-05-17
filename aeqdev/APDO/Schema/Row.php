@@ -6,7 +6,7 @@ namespace aeqdev\APDO\Schema;
  * Schema row object.
  * Validates and saves values into database.
  */
-class Row
+class Row implements \ArrayAccess
 {
 
     /**
@@ -15,17 +15,64 @@ class Row
     public $table;
 
     protected $_new;
+    protected $_data;
+    protected $_refs;
+
+    /**
+     * PDO calls setters before constructor.
+     * Before constructor this property is not set, in this case data stored directly in array without setters.
+     * Existing of this property after constructor, indicate that row is ready to collect data for next save.
+     *
+     * @var array
+     */
+    protected $_needSaveData;
 
     /**
      * @param Table $table Schema table.
      * @param bool $new If this flag is set to TRUE, row will be inserted on first save.
-     * @param array $values Field values of row.
+     * @param array $data Cell values of row.
      */
-    public function __construct(Table $table, $new = false, $values = [])
+    public function __construct(Table $table, $new = false, $data = null)
     {
         $this->table = $table;
         $this->_new = $new;
-        $this->data($values);
+        $this->_needSaveData = [];
+        if (isset($data)) {
+            $this->_data = $data;
+        }
+    }
+
+    /**
+     * Allows serialize only cell values and new status.
+     *
+     * @return array
+     */
+    public function __sleep()
+    {
+        return [
+            '_new',
+            '_data',
+        ];
+    }
+
+    public function __wakeup()
+    {
+        $this->_needSaveData = [];
+    }
+
+    /**
+     * Returns primary key of row.
+     * Complex keys comma separated.
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        if (is_array($this->table->pkey)) {
+            return implode(', ', $this->pkey());
+        } else {
+            return (string)$this->pkey();
+        }
     }
 
     /**
@@ -42,14 +89,29 @@ class Row
         return Statement::refs($this, $name);
     }
 
-    /**
-     * Allows serialize only cell values.
-     *
-     * @return array
-     */
-    public function __sleep()
+    public function __set($name, $value)
     {
-        return $this->table->cols;
+        if (isset($this->_needSaveData)) {
+            if (isset($this->table->cols[$name])) {
+                /** @var Column $col */
+                $col = $this->table->{$name}();
+                $this->_data[$name] = $col->filterSetValue($value, $this);
+                $this->_needSaveData[$name] = $name;
+            }
+        } else {
+            $this->_data[$name] = $value;
+        }
+    }
+
+    public function __get($name)
+    {
+        if (isset($this->table->cols[$name])) {
+            /** @var Column $col */
+            $col = $this->table->{$name}();
+            return $col->filterGetValue(isset($this->_data[$name]) ? $this->_data[$name] : null, $this);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -61,52 +123,53 @@ class Row
     }
 
     /**
-     * Validates and saves values into database.
+     * Set cell values of row.
      *
-     * @param array $columns Array of needed columns.
+     * @param array $data Cell values of row.
      * @throws RowValidateException
      */
-    public function save($columns = null)
+    public function data($data)
     {
-        $values = $this->values($columns);
+        $exceptions = [];
+        foreach ($data as $name => $value) {
+            try {
+                $this->__set($name, $value);
+            } catch (ColumnSkipException $e) {
+                continue;
+            } catch (\Exception $e) {
+                $exceptions[$name] = $e;
+                continue;
+            }
+        }
+        if (!empty($exceptions)) {
+            throw new RowValidateException($this, $exceptions);
+        }
+    }
+
+    /**
+     * Saves needed cells into database.
+     *
+     * @throws RowValidateException
+     */
+    public function save()
+    {
+        $values = [];
+        foreach ($this->_needSaveData as $name) {
+            $values[$name] = $this->_data[$name];
+        }
         if ($this->_new) {
             $pkey = $this->table->statement()
                 ->insert($values);
             if (isset($pkey)) {
-                $this->{$this->table->pkey} = $pkey;
+                $this->_data[$this->table->pkey] = $pkey;
             }
             $this->_new = false;
-        } else {
+        } else if (!empty($values)) {
             $this->table->statement()
                 ->key($this->pkey())
                 ->update($values);
         }
-        $this->data($values);
-    }
-
-    /**
-     * Set field values of row.
-     *
-     * @param array $values Field values of row.
-     */
-    public function data($values)
-    {
-        foreach ($values as $name => $value) {
-            if (isset($this->table->cols[$name])) {
-                $this->{$name} = $value;
-            }
-        }
-    }
-
-    /**
-     * Set field values and saves row.
-     *
-     * @param array $values Field values of row.
-     */
-    public function saveData($values)
-    {
-        $this->data($values);
-        $this->save(array_keys($values));
+        $this->_needSaveData = [];
     }
 
     /**
@@ -130,45 +193,53 @@ class Row
     {
         if (is_array($this->table->pkey)) {
             $pkey = [];
-            foreach ($this->table->pkey as $field) {
-                $pkey []= $this->{$field};
+            foreach ($this->table->pkey as $name) {
+                $pkey []= $this->_data[$name];
             }
             return $pkey;
         } else {
-            return $this->{$this->table->pkey};
+            return $this->_data[$this->table->pkey];
         }
     }
 
     /**
-     * Get array of validated field values.
-     *
-     * @param array $columns Array of needed columns.
-     * @throws RowValidateException
-     * @return array Array of validated values of current row with column names as keys.
+     * Implemented ArrayAccess
+     * @param mixed $offset
+     * @return bool
      */
-    public function values($columns = null)
+    public function offsetExists($offset)
     {
-        $values = [];
-        $exceptions = [];
-        if (isset($columns)) {
-            $columns = array_flip($columns);
-        }
-        foreach ($this->table->cols as $name) {
-            if (!isset($columns) || isset($columns[$name])) {
-                try {
-                    $values[$name] = $this->table->{$name}()->value($this);
-                } catch (ColumnSkipException $e) {
-                    continue;
-                } catch (\Exception $e) {
-                    $exceptions[$name] = $e;
-                    continue;
-                }
-            }
-        }
-        if (!empty($exceptions)) {
-            throw new RowValidateException($this, $exceptions);
-        }
-        return $values;
+        return isset($this->_data[$offset]);
+    }
+
+    /**
+     * Implemented ArrayAccess
+     * @param mixed $offset
+     * @return Row
+     */
+    public function offsetGet($offset)
+    {
+        return $this->__get($offset);
+    }
+
+    /**
+     * Implemented ArrayAccess
+     * @param mixed $offset
+     * @param mixed $value
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->__set($offset, $value);
+    }
+
+    /**
+     * Implemented ArrayAccess
+     * @param mixed $offset
+     */
+    public function offsetUnset($offset)
+    {
+        unset($this->_data[$offset]);
+        unset($this->_needSaveData[$offset]);
     }
 
 }
@@ -201,7 +272,7 @@ class RowValidateException extends \Exception
     {
         parent::__construct($message, $code, $previous);
         $this->row = $row;
-    $this->exceptions = $exceptions;
+        $this->exceptions = $exceptions;
     }
 
     public function __toString() {

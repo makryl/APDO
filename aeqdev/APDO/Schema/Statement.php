@@ -6,6 +6,9 @@ use PDO;
 
 /**
  * Schema statement can set schema table parameters and work with schema table references.
+ *
+ * @method Result fetchAll($fetchMode = null, $fetchArg = null, $fetchCtorArgs = null)
+ * @method Result fetchPage($page = 1)
  */
 class Statement extends \aeqdev\APDO\Statement
 {
@@ -138,7 +141,7 @@ class Statement extends \aeqdev\APDO\Statement
     {
         $r = parent::cacheGetStatement($statement, $args, $fetchMode);
         if (isset($r[0]) && $r[0] instanceof Row) {
-            foreach ($r as &$row) {
+            foreach ($r as $row) {
                 $row->table = $this->schemaTable;
             }
         }

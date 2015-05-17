@@ -17,7 +17,18 @@ class Column
     public $comment;
     public $null = true;
 
-    protected $validators = [];
+    protected $setFilters = [];
+    protected $getFilters = [];
+
+    /**
+     * @param Table $table Table.
+     * @param string $name Column name.
+     */
+    public function __construct(Table $table, $name)
+    {
+        $this->table = $table;
+        $this->name = $name;
+    }
 
     /**
      * Set comment for column.
@@ -32,29 +43,56 @@ class Column
     }
 
     /**
-     * Executes all validators on column value of specified row and returns result.
+     * Executes all set filters on value of specified row and returns filtered value.
      *
-     * @param Row $row Row to extract raw value from.
+     * @param mixed $value Value to validate.
+     * @param Row $row Row that setting value.
      * @return mixed Valid value.
      */
-    public function value(Row $row)
+    public function filterSetValue($value, Row $row)
     {
-        $value = $row->{$this->name};
-        foreach ($this->validators as $validator) {
-            $value = $validator($value, $row, $this);
+        foreach ($this->setFilters as $filter) {
+            $value = $filter($value, $row, $this);
         }
         return $value;
     }
 
     /**
-     * Adds validator to the column.
+     * Executes all get filters on value of specified row and returns filtered value.
      *
-     * @param callable $callback Validator function ($value, $row, $column)
+     * @param mixed $value Value to get.
+     * @param Row $row Row that getting value.
+     * @return mixed Value.
+     */
+    public function filterGetValue($value, Row $row)
+    {
+        foreach ($this->getFilters as $filter) {
+            $value = $filter($value, $row, $this);
+        }
+        return $value;
+    }
+
+    /**
+     * Adds filter for set operation to the column.
+     *
+     * @param callable $callback Filter function ($value, $row, $column)
      * @return static|$this Current column.
      */
-    public function addValidator($callback)
+    public function addSetFilter($callback)
     {
-        $this->validators [] = $callback;
+        $this->setFilters [] = $callback;
+        return $this;
+    }
+
+    /**
+     * Adds filter for get operation to the column.
+     *
+     * @param callable $callback Filter function ($value, $row, $column)
+     * @return static|$this Current column.
+     */
+    public function addGetFilter($callback)
+    {
+        $this->setFilters [] = $callback;
         return $this;
     }
 
@@ -66,7 +104,7 @@ class Column
      * @param int|array $options Filter options.
      * @return static|$this Current column.
      */
-    public function filter($filter, $options = null)
+    public function filterVar($filter, $options = null)
     {
         if (!is_array($options)) {
             $options = ['flags' => $options];
@@ -74,7 +112,7 @@ class Column
         if (!isset($options['options']['default'])) {
             $options['options']['default'] = null;
         }
-        return $this->addValidator(function($value) use ($filter, $options) {
+        return $this->addSetFilter(function($value) use ($filter, $options) {
             return filter_var($value, $filter, $options);
         });
     }
@@ -92,7 +130,7 @@ class Column
      * @throws ColumnValidatorException
      * @return static|$this Current column.
      */
-    public function filterStrict($filter, $options = null, $error_message = null)
+    public function filterVarStrict($filter, $options = null, $error_message = null)
     {
         if (!is_array($options)) {
             $options = ['flags' => $options];
@@ -103,7 +141,7 @@ class Column
         if (!isset($error_message)) {
             $error_message = self::$filter_error_message;
         }
-        return $this->addValidator(function($value, $row) use ($filter, $options, $error_message) {
+        return $this->addSetFilter(function($value, $row) use ($filter, $options, $error_message) {
             if (isset($value)) {
                 $value = filter_var($value, $filter, $options);
                 if (!isset($value)) {
@@ -126,7 +164,7 @@ class Column
     {
         $this->null = false;
 
-        return $this->addValidator(function ($value, $row) use ($error_message) {
+        return $this->addSetFilter(function ($value, $row) use ($error_message) {
             if (
                 empty($value)
                 && $value !== 0
@@ -148,7 +186,7 @@ class Column
      */
     public function emptySkip()
     {
-        return $this->addValidator(function($value, $row) {
+        return $this->addSetFilter(function($value, $row) {
             if (empty($value)) {
                 throw new ColumnSkipException($row, $this);
             }
@@ -165,7 +203,7 @@ class Column
      */
     public function nullSkip()
     {
-        return $this->addValidator(function($value, $row) {
+        return $this->addSetFilter(function($value, $row) {
             if (!isset($value)) {
                 throw new ColumnSkipException($row, $this);
             }
@@ -179,21 +217,19 @@ class Column
      * If referenced data not exists, column value used.
      *
      * @param string $error_message Error message on validation fail.
+     * @return $this|static
      * @throws ColumnValidatorException
-     * @return static|$this Current column.
      */
     public function fkey($error_message = null)
     {
-        return $this->addValidator(function($value, $row) use ($error_message) {
+        return $this->addSetFilter(function($value, $row) use ($error_message) {
             /** @var $row Row */
             if ($value instanceof Row) {
                 if ($value->table != $this->table->fkey[$this->name]) {
                     throw new ColumnValidatorException($row, $this, $error_message);
                 }
-                return $value->pkey();
-            } else {
-                return $value;
             }
+            return $value;
         });
     }
 

@@ -3,6 +3,7 @@
 namespace aeqdev\APDO\Schema\Column;
 
 use aeqdev\APDO\Schema\Column;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * Float column.
@@ -11,9 +12,10 @@ use aeqdev\APDO\Schema\Column;
 class Float extends Column
 {
 
-    public function __construct()
+    public function __construct(Table $table, $name)
     {
-        $this->filter(FILTER_VALIDATE_FLOAT);
+        parent::__construct($table, $name);
+        $this->filterVar(FILTER_VALIDATE_FLOAT);
     }
 
 }

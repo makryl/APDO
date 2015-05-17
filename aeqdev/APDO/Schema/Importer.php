@@ -158,8 +158,8 @@ class Importer
         $data .= " *\n";
         $data .= " * @property \\{$this->namespacedClass} \$schema\n";
         $data .= " *\n";
-        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} create\n";
-        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} get\n";
+        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} create(\$values = [], \$new = true)\n";
+        $data .= " * @method \\{$this->namespacedClass}\\Row{$this->suffix}_{$table} get(\$pkey)\n";
         if (!empty($tdata['cols'])) {
             $data .= " *\n";
             foreach ($tdata['cols'] as $col => $cdata) {
@@ -222,7 +222,7 @@ class Importer
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
                 $cclass = $this->getClassColumnByType($cdata['type']);
-                $cdef = "(new $cclass())";
+                $cdef = "(new $cclass(\$this, '$col'))";
 
                 if (isset($tdata['pkey']) && in_array($col, $tdata['pkey']) && count($tdata['pkey']) == 1) {
                     $cdef .= "->nullSkip()";
@@ -266,10 +266,7 @@ class Importer
         $data .= " *{$tdata['comment']}\n";
         $data .= " *\n";
         $data .= " * @property \\{$this->namespacedClass}\\Table{$this->suffix}_{$table} \$table\n";
-        $data .= $this->renderRefsMethods($tdata, true);
-        $data .= " */\n";
-        $data .= "class {$class} extends \\{$this->classRow}\n";
-        $data .= "{\n";
+        $data .= " *\n";
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $col => $cdata) {
                 $ctype = in_array($cdata['type'], [
@@ -279,16 +276,17 @@ class Importer
                     'string',
                 ]) ? $cdata['type'] : 'string';
                 if (isset($tdata['fkey'][$col])) {
-                    $data .= "    /** @var $ctype|\\{$this->namespacedClass}\\Row{$this->suffix}_{$tdata['fkey'][$col]}{$cdata['comment']} */\n";
-
+                    $data .= " * @property $ctype|\\{$this->namespacedClass}\\Row{$this->suffix}_{$tdata['fkey'][$col]} \${$col}{$cdata['comment']}\n";
                 } else {
-                    $data .= "    /** @var $ctype{$cdata['comment']} */\n";
+                    $data .= " * @property $ctype \${$col}{$cdata['comment']}\n";
                 }
-                $data .= "    public \${$col};\n";
             }
         }
+        $data .= $this->renderRefsMethods($tdata, true);
+        $data .= " */\n";
+        $data .= "class {$class} extends \\{$this->classRow}\n";
+        $data .= "{\n";
         if (!empty($tdata['refs'])) {
-            $data .= "\n";
             foreach ($tdata['refs'] as $rtable => $fkeys) {
                 $comment = $this->schema[$rtable]['comment'];
                 if (count($fkeys) == 1) {
@@ -313,6 +311,8 @@ class Importer
                     }
                 }
             }
+        } else {
+            $data .= "\n";
         }
         $data .= "}\n";
 
@@ -487,7 +487,7 @@ class Importer
                     $col = [];
 
                     # column type
-                    if (preg_match('/(bool|char|text|blob|datetime|time|date|int|float|real|double|decimal)/i', $cdef, $m)) {
+                    if (preg_match('/(bool|char|text|blob|datetime|time|date|int|float|real|double|decimal|numeric)/i', $cdef, $m)) {
                         switch (strtolower($m[1])) {
                             case     'bool': $col['type'] = 'bool';   break;
                             case     'char': $col['type'] = 'string'; break;
@@ -502,6 +502,7 @@ class Importer
                             case     'real': $col['type'] = 'float';  break;
                             case   'double': $col['type'] = 'float';  break;
                             case  'decimal': $col['type'] = 'float';  break;
+                            case  'numeric': $col['type'] = 'float';  break;
                         }
                     } else {
                         $col['type'] = 'string';

@@ -24,7 +24,8 @@ class APDOTest extends \PHPUnit_Framework_TestCase
     {
         $this->object = new APDO('mysql:host=localhost;dbname=test', 'root', '', [
             PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8"',
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
         $sql = file_get_contents(__DIR__ . '/APDO/Schema-drop.sql')
@@ -38,8 +39,6 @@ class APDOTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->cache = new ArraySerializeCache();
-
-        $this->object->setFetchMode(PDO::FETCH_ASSOC);
     }
 
     protected function tearDown()
@@ -453,10 +452,22 @@ WHERE id=?', $this->object->last()->lastQuery());
 
     public function testReferers()
     {
+        $this->_testReferers(PDO::FETCH_ASSOC);
+        $this->_testReferers(PDO::FETCH_OBJ);
+    }
+
+    public function testReferences()
+    {
+        $this->_testReferences(PDO::FETCH_ASSOC);
+        $this->_testReferences(PDO::FETCH_OBJ);
+    }
+
+    public function _testReferers($fetchMode)
+    {
         $fruits = $this->object
             ->from('apdo_test_fruit')
             ->orderBy('id')
-            ->fetchAll(PDO::FETCH_OBJ);
+            ->fetchAll($fetchMode);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -465,7 +476,7 @@ ORDER BY id', $this->object->last()->lastQuery());
         $trees = $this->object
             ->from('apdo_test_tree')
             ->referrers($fruits, 'fruits', 'tree', 'tree')
-            ->fetchAll(PDO::FETCH_OBJ);
+            ->fetchAll($fetchMode);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -474,12 +485,12 @@ WHERE id IN (?,?)', $this->object->last()->lastQuery());
         $this->checkReferences($fruits, $trees);
     }
 
-    public function testReferences()
+    public function _testReferences($fetchMode)
     {
         $trees = $this->object
             ->from('apdo_test_tree')
             ->orderBy('id')
-            ->fetchAll(PDO::FETCH_OBJ);
+            ->fetchAll($fetchMode);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_tree
@@ -488,7 +499,7 @@ ORDER BY id', $this->object->last()->lastQuery());
         $fruits = $this->object
             ->from('apdo_test_fruit')
             ->references($trees, 'fruits', 'tree', 'tree')
-            ->fetchAll(PDO::FETCH_OBJ);
+            ->fetchAll($fetchMode);
         $this->assertEquals(
             'SELECT *
 FROM apdo_test_fruit
@@ -500,28 +511,54 @@ WHERE tree IN (?,?)', $this->object->last()->lastQuery());
     public function checkReferences($fruits, $trees)
     {
         foreach ($fruits as $fruit) {
-            $this->assertObjectHasAttribute('tree', $fruit);
-            switch ($fruit->id) {
-                case 1:
-                case 2:
-                    $this->assertEquals('apple tree', $fruit->tree->name);
-                    break;
-                case 3:
-                    $this->assertEquals('orange tree', $fruit->tree->name);
-                    break;
+            if (is_object($fruit)) {
+                $this->assertObjectHasAttribute('tree', $fruit);
+                switch ($fruit->id) {
+                    case 1:
+                    case 2:
+                        $this->assertEquals('apple tree', $fruit->tree->name);
+                        break;
+                    case 3:
+                        $this->assertEquals('orange tree', $fruit->tree->name);
+                        break;
+                }
+            } else {
+                $this->assertArrayHasKey('tree', $fruit);
+                switch ($fruit['id']) {
+                    case 1:
+                    case 2:
+                        $this->assertEquals('apple tree', $fruit['tree']['name']);
+                        break;
+                    case 3:
+                        $this->assertEquals('orange tree', $fruit['tree']['name']);
+                        break;
+                }
             }
         }
 
         foreach ($trees as $tree) {
-            $this->assertObjectHasAttribute('fruits', $tree);
-            switch ($fruit->id) {
-                case 1:
-                    $this->assertEquals('apple1', $tree->fruits[0]->name);
-                    $this->assertEquals('apple2', $tree->fruits[1]->name);
-                    break;
-                case 2:
-                    $this->assertEquals('orange', $tree->fruits[0]->name);
-                    break;
+            if (is_object($tree)) {
+                $this->assertObjectHasAttribute('fruits', $tree);
+                switch ($tree->id) {
+                    case 1:
+                        $this->assertEquals('apple1', $tree->fruits[0]->name);
+                        $this->assertEquals('apple2', $tree->fruits[1]->name);
+                        break;
+                    case 2:
+                        $this->assertEquals('orange', $tree->fruits[0]->name);
+                        break;
+                }
+            } else {
+                $this->assertArrayHasKey('fruits', $tree);
+                switch ($tree['id']) {
+                    case 1:
+                        $this->assertEquals('apple1', $tree['fruits'][0]['name']);
+                        $this->assertEquals('apple2', $tree['fruits'][1]['name']);
+                        break;
+                    case 2:
+                        $this->assertEquals('orange', $tree['fruits'][0]['name']);
+                        break;
+                }
             }
         }
     }

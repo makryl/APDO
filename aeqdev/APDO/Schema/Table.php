@@ -9,7 +9,7 @@ use \aeqdev\APDO\Schema;
  * Contains information about columns, primary keys, unique keys and foreign keys.
  * Creates statements and row objects for the table.
  */
-class Table
+abstract class Table
 {
 
     /**
@@ -47,9 +47,7 @@ class Table
     {
         if (isset($this->cols[$name])) {
             if (!isset($this->columns[$name])) {
-                $column = $this->{'column_' . $name}();
-                $column->table = $this;
-                $column->name = $name;
+                $column = $this->{'column_' . $name}($this, $name);
                 $this->columns[$name] = $column;
             }
             return $this->columns[$name];
@@ -70,14 +68,14 @@ class Table
     /**
      * Creates table row.
      *
-     * @param array $values Set field values of new row.
+     * @param array $data Set field values of new row.
      * @param bool $new If this flag is set to TRUE, row will be inserted on first save.
      * @return Row Table row object.
      */
-    public function create($values = [], $new = true)
+    public function create($data = [], $new = true)
     {
         $classRow = $this->class_row;
-        return new $classRow($this, $new, $values);
+        return new $classRow($this, $new, $data);
     }
 
     /**

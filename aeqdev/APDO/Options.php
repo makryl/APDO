@@ -18,7 +18,7 @@ class Options
 
     public $pkey = 'id';
 
-    public $fetchMode = PDO::FETCH_OBJ;
+    public $fetchMode = PDO::FETCH_ASSOC;
     public $fetchArg;
     public $fetchCtorArgs;
 

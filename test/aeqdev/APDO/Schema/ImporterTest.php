@@ -28,6 +28,7 @@ class ImporterTest extends \PHPUnit_Framework_TestCase
     {
         $this->object->read(__DIR__ . '/../Schema.sql');
         $this->assertEquals($this->schemaInternal, $this->object->getSchema());
+//        $this->object->save('\\test\\aeqdev\\APDO\\TestSchema', __DIR__ . '/../../../..');
     }
 
     public function testSave()

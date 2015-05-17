@@ -3,6 +3,7 @@
 namespace aeqdev\APDO\Schema\Column;
 
 use aeqdev\APDO\Schema\Column;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * Boolean column.
@@ -11,9 +12,15 @@ use aeqdev\APDO\Schema\Column;
 class Bool extends Column
 {
 
-    public function __construct()
+    public function __construct(Table $table, $name)
     {
-        $this->filter(FILTER_VALIDATE_BOOLEAN);
+        parent::__construct($table, $name);
+        $this->filterVar(FILTER_VALIDATE_BOOLEAN, [
+            'options' => [
+                'default' => false
+            ],
+            'flags' => FILTER_NULL_ON_FAILURE,
+        ]);
     }
 
 }

@@ -900,6 +900,7 @@ class Statement
             } else {
                 $this->referrers_checkCachedRows($key, $data, $index, $cached, $keys);
             }
+            break;
         }
         if (empty($keys)) {
             $this->nothing();
@@ -910,14 +911,14 @@ class Statement
         return $this
             ->handler(function ($result) use ($index, $cached, $referrer, $reference, $pkey, $unique) {
                 $r = [];
-                if (isset($cached)) {
+                if (!empty($cached)) {
                     if ($unique) {
                         $this->referrers_setValuesUnique($r, $index, $referrer, $reference, $pkey, $cached);
                     } else {
                         $this->referrers_setValues($r, $index, $referrer, $reference, $pkey, $cached);
                     }
                 }
-                if (isset($result)) {
+                if (!empty($result)) {
                     if ($unique) {
                         $this->referrers_setValuesUnique($r, $index, $referrer, $reference, $pkey, $result);
                     } else {
@@ -930,7 +931,7 @@ class Statement
 
     private function referrers_checkCachedRows($key, &$item, &$index, &$cached, &$keys)
     {
-        $k = $item->{$key};
+        $k = is_object($item) ? $item->{$key} : $item[$key];
         if (isset($k)) {
             $index[$k] [] = & $item;
             if (empty($cached[$k]) && empty($keys[$k])) {
@@ -949,11 +950,20 @@ class Statement
         foreach ($data as $i => $row) {
             $row = & $data[$i];
             $result [] = & $row;
-            foreach ($index[$row->{$pkey}] as $k => $item) {
-                $item = $index[$row->{$pkey}][$k];
-                $item->{$reference} = & $row;
-                $row->{$referrer} [] = & $item;
-                unset($item);
+            if (is_object($row)) {
+                foreach ($index[$row->{$pkey}] as $k => $item) {
+                    $item = $index[$row->{$pkey}][$k];
+                    $item->{$reference} = $row;
+                    $row->{$referrer} [] = $item;
+                    unset($item);
+                }
+            } else {
+                foreach ($index[$row[$pkey]] as $k => $item) {
+                    $item = & $index[$row[$pkey]][$k];
+                    $item[$reference] = & $row;
+                    $row[$referrer] [] = & $item;
+                    unset($item);
+                }
             }
             unset($row);
         }
@@ -964,11 +974,20 @@ class Statement
         foreach ($data as $i => $row) {
             $row = & $data[$i];
             $result [] = & $row;
-            foreach ($index[$row->{$pkey}] as $k => $item) {
-                $item = & $index[$row->{$pkey}][$k];
-                $item->{$reference} = & $row;
-                $row->{$referrer} = & $item;
-                unset($item);
+            if (is_object($row)) {
+                foreach ($index[$row->{$pkey}] as $k => $item) {
+                    $item = $index[$row->{$pkey}][$k];
+                    $item->{$reference} = $row;
+                    $row->{$referrer} = $item;
+                    unset($item);
+                }
+            } else {
+                foreach ($index[$row[$pkey]] as $k => $item) {
+                    $item = & $index[$row[$pkey]][$k];
+                    $item[$reference] = & $row;
+                    $row[$referrer] = & $item;
+                    unset($item);
+                }
             }
             unset($row);
         }
@@ -1047,13 +1066,23 @@ class Statement
             if (is_int($i)) {
                 foreach ($data as $k => $item) {
                     $item = & $data[$k];
-                    $item->{$referrer} = [];
-                    $index[$item->{$pkey}] = & $item;
+                    if (is_object($item)) {
+                        $item->{$referrer} = [];
+                        $index[$item->{$pkey}] = $item;
+                    } else {
+                        $item[$referrer] = [];
+                        $index[$item[$pkey]] = & $item;
+                    }
                     unset($item);
                 }
             } else {
-                $data->{$referrer} = [];
-                $index[$data->{$pkey}] = & $data;
+                if (is_object($data)) {
+                    $data->{$referrer} = [];
+                    $index[$data->{$pkey}] = $data;
+                } else {
+                    $data[$referrer] = [];
+                    $index[$data[$pkey]] = & $data;
+                }
             }
             break;
         }
@@ -1071,9 +1100,15 @@ class Statement
                     foreach ($result as $k => $row) {
                         $row = & $result[$k];
                         $r [] = & $row;
-                        $item = & $index[$row->{$key}];
-                        $item->{$referrer} = & $row;
-                        $row->{$reference} = & $item;
+                        if (is_object($row)) {
+                            $item = $index[$row->{$key}];
+                            $item->{$referrer} = $row;
+                            $row->{$reference} = $item;
+                        } else {
+                            $item = & $index[$row[$key]];
+                            $item[$referrer] = & $row;
+                            $row[$reference] = & $item;
+                        }
                         unset($row);
                         unset($item);
                     }
@@ -1081,9 +1116,15 @@ class Statement
                     foreach ($result as $k => $row) {
                         $row = & $result[$k];
                         $r [] = & $row;
-                        $item = & $index[$row->{$key}];
-                        $item->{$referrer} [] = & $row;
-                        $row->{$reference} = & $item;
+                        if (is_object($row)) {
+                            $item = $index[$row->{$key}];
+                            $item->{$referrer} [] = $row;
+                            $row->{$reference} = $item;
+                        } else {
+                            $item = & $index[$row[$key]];
+                            $item[$referrer] [] = & $row;
+                            $row[$reference] = & $item;
+                        }
                         unset($row);
                         unset($item);
                     }

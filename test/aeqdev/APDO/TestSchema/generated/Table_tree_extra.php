@@ -7,8 +7,8 @@ namespace test\aeqdev\APDO\TestSchema\generated;
  *
  * @property \test\aeqdev\APDO\TestSchema $schema
  *
- * @method \test\aeqdev\APDO\TestSchema\Row_tree_extra create
- * @method \test\aeqdev\APDO\TestSchema\Row_tree_extra get
+ * @method \test\aeqdev\APDO\TestSchema\Row_tree_extra create($values = [], $new = true)
+ * @method \test\aeqdev\APDO\TestSchema\Row_tree_extra get($pkey)
  *
  * @method \aeqdev\APDO\Schema\Column\Int id
  * @method \aeqdev\APDO\Schema\Column\Int height Height
@@ -42,8 +42,8 @@ class Table_tree_extra extends \aeqdev\APDO\Schema\Table
 
     public $class_row = '\\test\\aeqdev\\APDO\\TestSchema\\Row_tree_extra';
 
-    protected function column_id() { return (new \aeqdev\APDO\Schema\Column\Int())->nullSkip(); }
-    protected function column_height() { return (new \aeqdev\APDO\Schema\Column\Int())->comment('Height'); }
-    protected function column_tree() { return (new \aeqdev\APDO\Schema\Column\Int())->fkey()->required()->comment('Tree'); }
-    protected function column_parent() { return (new \aeqdev\APDO\Schema\Column\Int())->fkey()->comment('Parent tree'); }
+    protected function column_id() { return (new \aeqdev\APDO\Schema\Column\Int($this, 'id'))->nullSkip(); }
+    protected function column_height() { return (new \aeqdev\APDO\Schema\Column\Int($this, 'height'))->comment('Height'); }
+    protected function column_tree() { return (new \aeqdev\APDO\Schema\Column\Int($this, 'tree'))->fkey()->required()->comment('Tree'); }
+    protected function column_parent() { return (new \aeqdev\APDO\Schema\Column\Int($this, 'parent'))->fkey()->comment('Parent tree'); }
 }

@@ -100,7 +100,7 @@ class Result implements \ArrayAccess, \Iterator, \Countable
      * @param mixed $offset
      * @return Row
      */
-    public function &offsetGet($offset)
+    public function offsetGet($offset)
     {
         return $this->result[$offset];
     }
@@ -135,4 +135,5 @@ class Result implements \ArrayAccess, \Iterator, \Countable
     {
         return count($this->result);
     }
+
 }

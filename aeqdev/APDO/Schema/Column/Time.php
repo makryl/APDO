@@ -3,6 +3,7 @@
 namespace aeqdev\APDO\Schema\Column;
 
 use aeqdev\APDO\Schema\Column;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * Time column.
@@ -16,9 +17,10 @@ class Time extends Column
 
     public $format = 'c';
 
-    public function __construct()
+    public function __construct(Table $table, $name)
     {
-        $this->addValidator(function($value) {
+        parent::__construct($table, $name);
+        $this->addSetFilter(function($value) {
             $value = strtotime($value);
             return $value === false ? null : date($this->format, $value);
         });

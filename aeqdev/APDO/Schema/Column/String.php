@@ -3,6 +3,7 @@
 namespace aeqdev\APDO\Schema\Column;
 
 use aeqdev\APDO\Schema\Column;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * String column.
@@ -14,9 +15,10 @@ class String extends Column
 
     public $length;
 
-    public function __construct()
+    public function __construct(Table $table, $name)
     {
-        $this->addValidator(function($value) {
+        parent::__construct($table, $name);
+        $this->addSetFilter(function($value) {
             if (isset($value)) {
                 $value = trim($value);
             }
@@ -36,7 +38,7 @@ class String extends Column
     {
         $this->length = $length;
 
-        return $this->addValidator(function($value) use ($length) {
+        return $this->addSetFilter(function($value) use ($length) {
             if (isset($value)) {
                 $value = mb_substr($value, 0, $length);
             }
@@ -54,7 +56,7 @@ class String extends Column
      */
     public function stripTags($allowable_tags = null)
     {
-        return $this->addValidator(function($value) use ($allowable_tags) {
+        return $this->addSetFilter(function($value) use ($allowable_tags) {
             return strip_tags($value, $allowable_tags);
         });
     }
@@ -79,14 +81,14 @@ class String extends Column
      */
     public function emptyNull()
     {
-        return $this->addValidator(function($value) {
+        return $this->addSetFilter(function($value) {
             return empty($value) ? null : $value;
         });
     }
 
     /**
      * Adds hash filter.
-     * See http://us2.php.net/manual/function.hash.php for details.
+     * See http://www.php.net/manual/function.hash.php for details.
      *
      * @param string $algo Name of selected hashing algorithm (i.e. "md5", "sha256", "haval160,4", etc..)
      * @param bool $raw When set to TRUE, outputs raw binary data. FALSE outputs lowercase hexits.
@@ -94,8 +96,24 @@ class String extends Column
      */
     public function hash($algo, $raw = false)
     {
-        return $this->addValidator(function($value) use ($algo, $raw) {
+        return $this->addSetFilter(function($value) use ($algo, $raw) {
             return hash($algo, $value, $raw);
+        });
+    }
+
+    /**
+     * Creates a password hash.
+     *
+     * @link http://www.php.net/manual/en/function.password-hash.php
+     * @param int $algo A <a href="http://www.php.net/manual/en/password.constants.php" class="link">password algorithm constant</a>  denoting the algorithm to use when hashing the password.
+     * @param array $options [optional] <p> An associative array containing options. See the <a href="http://www.php.net/manual/en/password.constants.php" class="link">password algorithm constants</a> for documentation on the supported options for each algorithm.
+     * If omitted, a random salt will be created and the default cost will be used.
+     * @return $this|static Current column.
+     */
+    public function password_hash($algo = PASSWORD_DEFAULT, $options = null)
+    {
+        return $this->addSetFilter(function($value) use ($algo, $options) {
+            return password_hash($value, $algo, $options);
         });
     }
 
@@ -107,7 +125,7 @@ class String extends Column
      */
     public function email($error_message = null)
     {
-        return $this->filterStrict(FILTER_VALIDATE_EMAIL, null, $error_message);
+        return $this->filterVarStrict(FILTER_VALIDATE_EMAIL, null, $error_message);
     }
 
     /**
@@ -118,7 +136,18 @@ class String extends Column
      */
     public function ip($error_message = null)
     {
-        return $this->filterStrict(FILTER_VALIDATE_IP, null, $error_message);
+        return $this->filterVarStrict(FILTER_VALIDATE_IP, null, $error_message);
+    }
+
+    /**
+     * Adds FILTER_VALIDATE_URL strict filter.
+     *
+     * @param string $error_message Error message on validation fail.
+     * @return static|$this Current column.
+     */
+    public function url($error_message = null)
+    {
+        return $this->filterVarStrict(FILTER_VALIDATE_URL, null, $error_message);
     }
 
     /**
@@ -130,7 +159,7 @@ class String extends Column
      */
     public function match($pattern, $error_message = null)
     {
-        return $this->filterStrict(FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => $pattern]], $error_message);
+        return $this->filterVarStrict(FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => $pattern]], $error_message);
     }
 
     /**

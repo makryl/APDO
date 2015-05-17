@@ -167,9 +167,14 @@ class Exporter
 
     protected function renderTable($tablePrefix, $tname, $tdata)
     {
-        $this->sql .= "\nCREATE TABLE {$tablePrefix}$tname\n(\n";
+        $ecomment = addslashes(trim($tdata['comment']));
+        if (!empty($ecomment)) {
+            $ecomment = ' -- ' . $ecomment;
+        }
+
+        $this->sql .= "\nCREATE TABLE {$tablePrefix}$tname{$ecomment}\n(\n";
         $prefix = "    ";
-        $suffix = ",\n";
+        $suffix = ",";
 
         if (!empty($tdata['cols'])) {
             foreach ($tdata['cols'] as $cname => $cdata) {
@@ -191,10 +196,9 @@ class Exporter
             }
         }
 
-        $this->renderPkey($tdata, $prefix, "\n");
+        $this->renderPkey($tdata, $prefix, '');
 
-        $ecomment = addslashes(trim($tdata['comment']));
-        $this->sql .= ") COMMENT '{$ecomment}';\n";
+        $this->sql .= ");\n";
     }
 
     protected function renderCol($cname, $cdata, $tdata, $prefix, $suffix)
@@ -212,27 +216,27 @@ class Exporter
             }
         }
 
-        $comment = empty($cdata['comment']) ? '' : " COMMENT '" . addslashes(trim($cdata['comment'])) ."'";
+        $comment = empty($cdata['comment']) ? '' : " -- " . addslashes(trim($cdata['comment']));
 
-        $this->sql .= $prefix . $cname . ' ' . $type . $length . $null . $comment . $suffix;
+        $this->sql .= $prefix . $cname . ' ' . $type . $length . $null . $suffix . $comment . "\n";
     }
 
     protected function renderFkey($tablePrefix, $fkey, $rtable, $prefix, $suffix)
     {
         $rid = $this->schema[$rtable]['pkey'][0];
         $this->sql .= $prefix . 'FOREIGN KEY (' . $fkey . ') REFERENCES '
-            . $tablePrefix . $rtable . '(' . $rid . ')' . $suffix;
+            . $tablePrefix . $rtable . '(' . $rid . ')' . $suffix . "\n";
     }
 
     protected function renderUkey($ukey, $prefix, $suffix)
     {
-        $this->sql .= $prefix . 'UNIQUE KEY (' . $ukey . ')' . $suffix;
+        $this->sql .= $prefix . 'UNIQUE KEY (' . $ukey . ')' . $suffix . "\n";
     }
 
     protected function renderPkey($tdata, $prefix, $suffix)
     {
         $pkey = implode(', ', $tdata['pkey']);
-        $this->sql .= $prefix . 'PRIMARY KEY (' . $pkey . ')' . $suffix;
+        $this->sql .= $prefix . 'PRIMARY KEY (' . $pkey . ')' . $suffix . "\n";
     }
 
     public function getDiffSQL($withDrops = false)
@@ -240,7 +244,7 @@ class Exporter
         $this->sql = '';
         $tablePrefix = $this->readSchema->prefix;
         $cmt = "\n" . ($withDrops ? '' : '-- ');
-        $suffix = ";\n";
+        $suffix = ";";
 
         foreach ($this->compare as $tname => $tdata) {
             if (isset($this->schema[$tname])) {
@@ -250,7 +254,7 @@ class Exporter
                 if (!empty($tdata['cols'])) {
                     foreach ($tdata['cols'] as $cname => $cdata) {
                         if (!isset($ctdata['cols'][$cname])) {
-                            $this->sql .= $prefix . $cname . $suffix;
+                            $this->sql .= $prefix . $cname . $suffix . "\n";
                         }
                     }
                 }
@@ -273,7 +277,7 @@ class Exporter
 
                 if (!empty($tdata['pkey'])) {
                     if (!isset($ctdata['pkey'])) {
-                        $this->sql .= $prefix . 'PRIMARY KEY' . $suffix;
+                        $this->sql .= $prefix . 'PRIMARY KEY' . $suffix . "\n";
                     }
                 }
             } else {

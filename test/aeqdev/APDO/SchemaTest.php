@@ -162,7 +162,7 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
     {
         $fruit = $this->object->fruit->create();
         $fruit->color = 'yellow';
-        $this->assertEquals('yello', $this->object->fruit->color()->value($fruit)); # because of limit 5 chars
+        $this->assertEquals('yello', $fruit->color); # because of limit 5 chars
     }
 
     public function testCache()

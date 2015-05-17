@@ -3,6 +3,7 @@
 namespace aeqdev\APDO\Schema\Column;
 
 use aeqdev\APDO\Schema\Column;
+use aeqdev\APDO\Schema\Table;
 
 /**
  * Integer column.
@@ -11,9 +12,10 @@ use aeqdev\APDO\Schema\Column;
 class Int extends Column
 {
 
-    public function __construct()
+    public function __construct(Table $table, $name)
     {
-        $this->filter(FILTER_VALIDATE_INT);
+        parent::__construct($table, $name);
+        $this->filterVar(FILTER_VALIDATE_INT);
     }
 
 }
